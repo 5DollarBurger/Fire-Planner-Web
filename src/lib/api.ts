@@ -43,7 +43,7 @@ export const api = {
     }),
 
   projectLiquidAsset: (payload: object, token?: string) =>
-    request<{ liquidAsset: number[]; age: number[] }>("/project/", {
+    request<{ liquidAsset: number[]; cash: number[]; investment: number[]; age: number[] }>("/project/", {
       method: "POST",
       body: JSON.stringify(payload),
     }, token),

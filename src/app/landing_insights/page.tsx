@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -11,63 +11,14 @@ import {
   YAxis,
 } from "recharts";
 
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 
-function computeProjection(
-  age: number,
-  cash: number,
-  investment: number,
-  investmentReturn: number,
-  sellAtRetirement: boolean,
-  income: number,
-  expense: number,
-) {
-  const targetWealth = expense * 25;
-  let projCash = cash;
-  let projInvestment = investment;
-  let retirementAge = age + 50;
-
-  for (let y = 0; y < 50; y++) {
-    if (projCash + projInvestment >= targetWealth) {
-      retirementAge = age + y;
-      break;
-    }
-    projCash += income - expense;
-    projInvestment *= 1 + investmentReturn;
-  }
-
-  const yearsToRetire = Math.max(0, retirementAge - age);
-
-  projCash = cash;
-  projInvestment = investment;
-  let investmentSold = false;
-  const chartData: { age: number; cash: number; investment: number }[] = [];
-
-  for (let y = 0; y <= 100 - age; y++) {
-    const currentAge = age + y;
-    if (currentAge < retirementAge) {
-      projCash += income - expense;
-      projInvestment *= 1 + investmentReturn;
-    } else {
-      if (sellAtRetirement && !investmentSold) {
-        projCash += projInvestment;
-        projInvestment = 0;
-        investmentSold = true;
-      }
-      projCash -= expense;
-    }
-    const safeCash = Math.max(0, Math.round(projCash));
-    const safeInvestment = Math.max(0, Math.round(projInvestment));
-    chartData.push({ age: currentAge, cash: safeCash, investment: safeInvestment });
-    if (safeCash === 0 && safeInvestment === 0) break;
-  }
-
-  return { retirementAge, yearsToRetire, chartData };
-}
+type ChartRow = { age: number; cash: number; investment: number };
 
 export default function LandingInsights() {
   const [age, setAge] = useState(30);
@@ -78,15 +29,55 @@ export default function LandingInsights() {
   const [income, setIncome] = useState(70000);
   const [expense, setExpense] = useState(40000);
 
-  const { retirementAge, yearsToRetire, chartData } = computeProjection(
-    age,
-    cash,
-    investment,
-    investmentReturn / 100,
-    sellAtRetirement,
-    income,
-    expense,
-  );
+  const [retirementAge, setRetirementAge] = useState<number | null>(null);
+  const [yearsToRetire, setYearsToRetire] = useState<number | null>(null);
+  const [chartData, setChartData] = useState<ChartRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      setError(null);
+
+      const customerPayload = {
+        age,
+        income,
+        expense,
+        sellInvestmentAtRetirement: sellAtRetirement,
+        assetList: [
+          { name: "cash", value: cash, return: 0 },
+          { name: "investment", value: investment, return: investmentReturn / 100 },
+        ],
+      };
+
+      try {
+        const retirementResult = await api.calculateRetirementAge(customerPayload);
+
+        const projectionResult = await api.projectLiquidAsset({
+          ...customerPayload,
+          retirementAge: retirementResult.retirementAge,
+        });
+
+        setRetirementAge(retirementResult.retirementAge);
+        setYearsToRetire(retirementResult.yearsToRetire);
+        setChartData(
+          projectionResult.age.map((a, i) => ({
+            age: a,
+            cash: projectionResult.cash[i],
+            investment: projectionResult.investment[i],
+          })),
+        );
+      } catch (err: unknown) {
+        setError("Could not reach the API. Is the backend running?");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [age, cash, investment, investmentReturn, sellAtRetirement, income, expense]);
 
   return (
     <div className="flex gap-8 p-8 min-h-screen">
@@ -185,24 +176,34 @@ export default function LandingInsights() {
       <div className="flex-1 flex flex-col gap-6">
         <h1 className="text-2xl font-bold">Landing Insights</h1>
 
-        <p className="text-lg">
-          You can retire in <strong>{yearsToRetire} years</strong> at{" "}
-          <strong>{retirementAge} years old</strong>.
-        </p>
+        {error && (
+          <p className="text-red-500 text-sm">{error}</p>
+        )}
 
-        <ResponsiveContainer width="100%" height={500}>
-          <BarChart data={chartData}>
-            <XAxis
-              dataKey="age"
-              label={{ value: "Age (years)", position: "insideBottom", offset: -5 }}
-            />
-            <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-            <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
-            <Legend />
-            <Bar dataKey="cash" stackId="a" fill="#60a5fa" name="Cash" />
-            <Bar dataKey="investment" stackId="a" fill="#34d399" name="Investment" />
-          </BarChart>
-        </ResponsiveContainer>
+        {!error && retirementAge !== null && yearsToRetire !== null && (
+          <p className="text-lg">
+            You can retire in <strong>{yearsToRetire} years</strong> at{" "}
+            <strong>{retirementAge} years old</strong>.
+          </p>
+        )}
+
+        {loading && <p className="text-sm text-muted-foreground">Calculating...</p>}
+
+        {chartData.length > 0 && (
+          <ResponsiveContainer width="100%" height={500}>
+            <BarChart data={chartData}>
+              <XAxis
+                dataKey="age"
+                label={{ value: "Age (years)", position: "insideBottom", offset: -5 }}
+              />
+              <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+              <Legend />
+              <Bar dataKey="cash" stackId="a" fill="#60a5fa" name="Cash" />
+              <Bar dataKey="investment" stackId="a" fill="#34d399" name="Investment" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
     </div>
