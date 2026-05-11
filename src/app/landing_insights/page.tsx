@@ -79,14 +79,106 @@ export default function LandingInsights() {
 
   return (
     <div className="flex gap-8 p-8 min-h-screen">
-      <div className="w-72 shrink-0">
-        <p>Age: {age}</p>
+      {/* Left column: KYC inputs */}
+      <div className="w-72 shrink-0 flex flex-col gap-6">
+        <h2 className="text-lg font-semibold">Your Profile</h2>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Your Age</label>
+          <input
+            type="number"
+            min={16}
+            max={94}
+            value={age}
+            onChange={(e) => setAge(Number(e.target.value))}
+            className="border rounded px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Cash on hand</label>
+          <input
+            type="number"
+            min={0}
+            step={10000}
+            value={cash}
+            onChange={(e) => setCash(Number(e.target.value))}
+            className="border rounded px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Investment portfolio</label>
+          <input
+            type="number"
+            min={0}
+            step={10000}
+            value={investment}
+            onChange={(e) => setInvestment(Number(e.target.value))}
+            className="border rounded px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">
+            Portfolio return: {investmentReturn}%
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={20}
+            step={1}
+            value={investmentReturn}
+            onChange={(e) => setInvestmentReturn(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="sell"
+            checked={sellAtRetirement}
+            onChange={(e) => setSellAtRetirement(e.target.checked)}
+          />
+          <label
+            htmlFor="sell"
+            className="text-sm
+  font-medium"
+          >
+            Sell investments at retirement
+          </label>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Annual income</label>
+          <input
+            type="number"
+            min={0}
+            step={10000}
+            value={income}
+            onChange={(e) => setIncome(Number(e.target.value))}
+            className="border rounded px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Annual expenses</label>
+          <input
+            type="number"
+            min={0}
+            step={10000}
+            value={expense}
+            onChange={(e) => setExpense(Number(e.target.value))}
+            className="border rounded px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+
+      {/* Right column: placeholder */}
+      <div className="flex-1">
         <p>Retirement age: {retirementAge}</p>
         <p>Years to retire: {yearsToRetire}</p>
-        <p>Chart data rows: {chartData.length}</p>
-      </div>
-      <div className="flex-1">
-        <p>Chart goes here</p>
       </div>
     </div>
   );
