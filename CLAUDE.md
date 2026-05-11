@@ -20,11 +20,11 @@ Freemium SaaS. Two tiers:
 
 ## Environment variables
 
-| Variable | Purpose |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | Django API base URL |
-| `NEXT_PUBLIC_API_KEY` | Client-level API key (X-API-Key header) |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| Variable | Scope | Purpose |
+|---|---|---|
+| `API_URL` | Server-only | Django API base URL — used by Next.js Route Handlers |
+| `API_KEY` | Server-only | Client-level API key (X-API-Key header) — never sent to browser |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Public | Google OAuth client ID — needed client-side for Sign In |
 
 Never commit `.env.local`. Edit `.env.local.example` for documentation.
 
