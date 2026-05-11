@@ -11,12 +11,12 @@ import {
   YAxis,
 } from "recharts";
 
-import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { api } from "@/lib/api";
 
 type ChartRow = { age: number; cash: number; investment: number };
 
@@ -197,7 +197,7 @@ export default function LandingInsights() {
                 label={{ value: "Age (years)", position: "insideBottom", offset: -5 }}
               />
               <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+              <Tooltip formatter={(v) => typeof v === "number" ? `$${v.toLocaleString()}` : String(v)} />
               <Legend />
               <Bar dataKey="cash" stackId="a" fill="#60a5fa" name="Cash" />
               <Bar dataKey="investment" stackId="a" fill="#34d399" name="Investment" />
