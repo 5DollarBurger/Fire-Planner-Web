@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { api } from "@/lib/api";
 
 type ChartRow = { age: number; cash: number; investment: number };
 
@@ -52,12 +51,17 @@ export default function LandingInsights() {
       };
 
       try {
-        const retirementResult = await api.calculateRetirementAge(customerPayload);
+        const retirementResult = await fetch("/api/retirement-age", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(customerPayload),
+        }).then((r) => r.json()) as { retirementAge: number; yearsToRetire: number };
 
-        const projectionResult = await api.projectLiquidAsset({
-          ...customerPayload,
-          retirementAge: retirementResult.retirementAge,
-        });
+        const projectionResult = await fetch("/api/projection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...customerPayload, retirementAge: retirementResult.retirementAge }),
+        }).then((r) => r.json()) as { age: number[]; cash: number[]; investment: number[] };
 
         setRetirementAge(retirementResult.retirementAge);
         setYearsToRetire(retirementResult.yearsToRetire);
