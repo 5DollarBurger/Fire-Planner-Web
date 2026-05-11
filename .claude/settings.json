@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/d.leong/Repositories/Fire-Planner-Web && FILE=$(cat | python3 -c \"import sys,json; d=json.load(sys.stdin); print(d.get('file_path',''))\" 2>/dev/null); [ -n \"$FILE\" ] && npx prettier --write \"$FILE\" 2>/dev/null; exit 0"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/d.leong/Repositories/Fire-Planner-Web/.claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
