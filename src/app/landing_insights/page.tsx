@@ -1,6 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import {
+  Bar,
+  BarChart,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 function computeProjection(
   age: number,
@@ -141,11 +150,7 @@ export default function LandingInsights() {
             checked={sellAtRetirement}
             onChange={(e) => setSellAtRetirement(e.target.checked)}
           />
-          <label
-            htmlFor="sell"
-            className="text-sm
-  font-medium"
-          >
+          <label htmlFor="sell" className="text-sm font-medium">
             Sell investments at retirement
           </label>
         </div>
@@ -175,10 +180,37 @@ export default function LandingInsights() {
         </div>
       </div>
 
-      {/* Right column: placeholder */}
-      <div className="flex-1">
-        <p>Retirement age: {retirementAge}</p>
-        <p>Years to retire: {yearsToRetire}</p>
+      {/* Right column: insights */}
+      <div className="flex-1 flex flex-col gap-6">
+        <h1 className="text-2xl font-bold">Landing Insights</h1>
+
+        <p className="text-lg">
+          You can retire in <strong>{yearsToRetire} years</strong> at{" "}
+          <strong>{retirementAge} years old</strong>.
+        </p>
+
+        <ResponsiveContainer width="100%" height={500}>
+          <BarChart data={chartData}>
+            <XAxis
+              dataKey="age"
+              label={{
+                value: "Age (years)",
+                position: "insideBottom",
+                offset: -5,
+              }}
+            />
+            <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+            <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+            <Legend />
+            <Bar dataKey="cash" stackId="a" fill="#60a5fa" name="Cash" />
+            <Bar
+              dataKey="investment"
+              stackId="a"
+              fill="#34d399"
+              name="Investment"
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
