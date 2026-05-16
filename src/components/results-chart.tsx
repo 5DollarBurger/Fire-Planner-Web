@@ -8,10 +8,14 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
-  TooltipProps,
   XAxis,
   YAxis,
 } from "recharts"
+
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: Array<{ payload: ChartRow }>
+}
 
 export interface ChartRow {
   age: number
@@ -67,9 +71,9 @@ export function ResultsChart({
       maximumFractionDigits: 0,
     }).format(value)
 
-  const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
-      const data = payload[0]?.payload as ChartRow
+      const data = payload[0].payload
       const total = data.cash + data.investment
       return (
         <div className="bg-card border border-border p-4 shadow-sm">
