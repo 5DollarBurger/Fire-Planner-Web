@@ -103,18 +103,16 @@ export function ResultsChart({
           ) : retirementAge !== null && yearsToRetire !== null ? (
             <>
               <p className="font-serif text-7xl md:text-8xl text-foreground tracking-tight mb-4">
-                {retirementAge}
+                {yearsToRetire}
               </p>
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
-                Years of Age
+                {yearsToRetire === 1 ? "Year to Independence" : "Years to Independence"}
               </p>
               <div className="h-px bg-border w-16 mx-auto mb-6" />
               <p className="text-lg text-foreground font-serif">
                 {yearsToRetire === 0
                   ? "You have achieved financial independence"
-                  : yearsToRetire === 1
-                    ? "One year remaining"
-                    : `${yearsToRetire} years from present`}
+                  : `Retire at age ${retirementAge}`}
               </p>
             </>
           ) : null}
