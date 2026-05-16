@@ -1,25 +1,14 @@
-"use client";
+"use client"
 
+import { CalculatorForm } from "@/components/calculator-form";
+import { HeroSection } from "@/components/hero-section";
+import { ResultsChart } from "@/components/results-chart";
 import { useEffect, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 
 type ChartRow = { age: number; cash: number; investment: number };
 
-export default function LandingInsights() {
+export default function HomePage() {
+  // Calculator state
   const [age, setAge] = useState(30);
   const [cash, setCash] = useState(30000);
   const [investment, setInvestment] = useState(50000);
@@ -51,20 +40,45 @@ export default function LandingInsights() {
       };
 
       try {
-        const retirementResult = await fetch("/api/retirement-age", {
+        const retirementRes = await fetch("/api/retirement-age", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(customerPayload),
-        }).then((r) => r.json()) as { retirementAge: number; yearsToRetire: number };
-
-        const projectionResult = await fetch("/api/projection", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...customerPayload, retirementAge: retirementResult.retirementAge }),
-        }).then((r) => r.json()) as { age: number[]; cash: number[]; investment: number[] };
+        });
+        if (!retirementRes.ok) {
+          const errBody = await retirementRes.json().catch(() => ({}));
+          throw new Error(`retirement-age ${retirementRes.status}: ${JSON.stringify(errBody)}`);
+        }
+        const retirementResult = (await retirementRes.json()) as {
+          retirementAge: number;
+          yearsToRetire: number;
+        };
 
         setRetirementAge(retirementResult.retirementAge);
         setYearsToRetire(retirementResult.yearsToRetire);
+
+        // Skip projection if user is already FIRE-ready
+        // (serializer rejects retirementAge <= age)
+        if (retirementResult.retirementAge <= age) {
+          setChartData([]);
+          return;
+        }
+
+        const projectionRes = await fetch("/api/projection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...customerPayload, retirementAge: retirementResult.retirementAge }),
+        });
+        if (!projectionRes.ok) {
+          const errBody = await projectionRes.json().catch(() => ({}));
+          throw new Error(`projection ${projectionRes.status}: ${JSON.stringify(errBody)}`);
+        }
+        const projectionResult = (await projectionRes.json()) as {
+          age: number[];
+          cash: number[];
+          investment: number[];
+        };
+
         setChartData(
           projectionResult.age.map((a, i) => ({
             age: a,
@@ -84,132 +98,162 @@ export default function LandingInsights() {
   }, [age, cash, investment, investmentReturn, sellAtRetirement, income, expense]);
 
   return (
-    <div className="flex gap-8 p-8 min-h-screen">
+    <div className="min-h-screen">
+      {/* Header - Masthead Style */}
+      <header className="border-b border-border">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Top bar */}
+          <div className="flex items-center justify-between py-2 border-b border-border text-xs text-muted-foreground">
+            <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <span>Free Financial Planning Tools</span>
+          </div>
+          {/* Main header */}
+          <div className="py-6 text-center">
+            <h1 className="font-serif text-3xl md:text-4xl tracking-tight text-foreground">
+              Fire Planner
+            </h1>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mt-2">
+              The Journal of Financial Independence
+            </p>
+          </div>
+          {/* Navigation */}
+          <nav className="flex items-center justify-center gap-8 py-3 border-t border-border text-sm">
+            <a
+              href="#calculator"
+              className="text-foreground hover:text-accent transition-colors"
+            >
+              Calculator
+            </a>
+            <span className="text-border">|</span>
+            <a
+              href="#"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Methodology
+            </a>
+            <span className="text-border">|</span>
+            <a
+              href="#"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Research
+            </a>
+            <span className="text-border">|</span>
+            <a
+              href="#"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              About
+            </a>
+          </nav>
+        </div>
+      </header>
 
-      {/* Left column: KYC inputs */}
-      <Card className="w-72 shrink-0 h-fit">
-        <CardHeader>
-          <CardTitle>Your Profile</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-6">
+      {/* Hero Section */}
+      <HeroSection />
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="age">Your age</Label>
-            <Input
-              id="age"
-              type="number"
-              min={16}
-              max={94}
-              value={age}
-              onChange={(e) => setAge(Number(e.target.value))}
-            />
+      {/* Calculator Section */}
+      <section
+        id="calculator"
+        className="scroll-mt-16 px-4 py-16 sm:px-6 lg:px-8 border-t border-border"
+      >
+        <div className="mx-auto max-w-7xl">
+          {/* Section Header */}
+          <div className="mb-12 text-center max-w-2xl mx-auto">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-4">
+              Interactive Analysis
+            </p>
+            <h2 className="font-serif text-3xl md:text-4xl text-foreground mb-4 text-balance">
+              Model Your Path to Independence
+            </h2>
+            <div className="w-16 h-px bg-foreground mx-auto mb-6" />
+            <p className="text-muted-foreground leading-relaxed">
+              Input your current financial position and assumptions. 
+              The projection will update in real time as you adjust parameters.
+            </p>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="cash">Cash on hand</Label>
-            <Input
-              id="cash"
-              type="number"
-              min={0}
-              step={10000}
-              value={cash}
-              onChange={(e) => setCash(Number(e.target.value))}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="investment">Investment portfolio</Label>
-            <Input
-              id="investment"
-              type="number"
-              min={0}
-              step={10000}
-              value={investment}
-              onChange={(e) => setInvestment(Number(e.target.value))}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label>Portfolio return: {investmentReturn}%</Label>
-            <Slider
-              min={0}
-              max={20}
-              step={1}
-              value={investmentReturn}
-              onValueChange={(val) => setInvestmentReturn(val as number)}
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Switch
-              id="sell"
-              checked={sellAtRetirement}
-              onCheckedChange={setSellAtRetirement}
-            />
-            <Label htmlFor="sell">Sell investments at retirement</Label>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="income">Annual income</Label>
-            <Input
-              id="income"
-              type="number"
-              min={0}
-              step={10000}
-              value={income}
-              onChange={(e) => setIncome(Number(e.target.value))}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="expense">Annual expenses</Label>
-            <Input
-              id="expense"
-              type="number"
-              min={0}
-              step={10000}
-              value={expense}
-              onChange={(e) => setExpense(Number(e.target.value))}
-            />
-          </div>
-
-        </CardContent>
-      </Card>
-
-      {/* Right column: insights */}
-      <div className="flex-1 flex flex-col gap-6">
-        <h1 className="text-2xl font-bold">Landing Insights</h1>
-
-        {error && (
-          <p className="text-red-500 text-sm">{error}</p>
-        )}
-
-        {!error && retirementAge !== null && yearsToRetire !== null && (
-          <p className="text-lg">
-            You can retire in <strong>{yearsToRetire} years</strong> at{" "}
-            <strong>{retirementAge} years old</strong>.
-          </p>
-        )}
-
-        {loading && <p className="text-sm text-muted-foreground">Calculating...</p>}
-
-        {chartData.length > 0 && (
-          <ResponsiveContainer width="100%" height={500}>
-            <BarChart data={chartData}>
-              <XAxis
-                dataKey="age"
-                label={{ value: "Age (years)", position: "insideBottom", offset: -5 }}
+          {/* Two Column Layout */}
+          <div className="grid gap-12 lg:grid-cols-[380px_1fr]">
+            {/* Left: Sticky Form */}
+            <div className="lg:self-start">
+              <CalculatorForm
+                age={age}
+                setAge={setAge}
+                cashOnHand={cash}
+                setCashOnHand={setCash}
+                investmentPortfolio={investment}
+                setInvestmentPortfolio={setInvestment}
+                portfolioReturn={investmentReturn}
+                setPortfolioReturn={setInvestmentReturn}
+                sellAtRetirement={sellAtRetirement}
+                setSellAtRetirement={setSellAtRetirement}
+                annualIncome={income}
+                setAnnualIncome={setIncome}
+                annualExpenses={expense}
+                setAnnualExpenses={setExpense}
               />
-              <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v) => typeof v === "number" ? `$${v.toLocaleString()}` : String(v)} />
-              <Legend />
-              <Bar dataKey="cash" stackId="a" fill="#60a5fa" name="Cash" />
-              <Bar dataKey="investment" stackId="a" fill="#34d399" name="Investment" />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
+            </div>
 
+            {/* Right: Results */}
+            <div>
+              <ResultsChart
+                retirementAge={retirementAge}
+                yearsToRetire={yearsToRetire}
+                chartData={chartData}
+                cashOnHand={cash}
+                investmentPortfolio={investment}
+                annualExpenses={expense}
+                sellAtRetirement={sellAtRetirement}
+                portfolioReturn={investmentReturn}
+                loading={loading}
+                error={error}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-secondary/30">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-3 text-center md:text-left">
+            <div>
+              <h3 className="font-serif text-lg text-foreground mb-3">Fire Planner</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Rigorous analysis for the financially independent. 
+                Built on established principles of wealth accumulation.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Disclaimer</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                This tool provides projections based on user inputs and is not financial advice. 
+                Past performance does not guarantee future results.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Links</h4>
+              <div className="flex flex-col gap-2 text-sm">
+                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Privacy Policy
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Terms of Use
+                </a>
+                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Contact
+                </a>
+              </div>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-border text-center">
+            <p className="text-xs text-muted-foreground">
+              &copy; {new Date().getFullYear()} Fire Planner. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
-  );
+  )
 }
