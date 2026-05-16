@@ -26,12 +26,12 @@ export interface ChartRow {
 interface ResultsChartProps {
   retirementAge: number | null
   yearsToRetire: number | null
+  targetFIRE: number | null
   chartData: ChartRow[]
   cashOnHand: number
   investmentPortfolio: number
   annualExpenses: number
   sellAtRetirement: boolean
-  portfolioReturn: number
   loading: boolean
   error: string | null
 }
@@ -39,23 +39,15 @@ interface ResultsChartProps {
 export function ResultsChart({
   retirementAge,
   yearsToRetire,
+  targetFIRE,
   chartData,
   cashOnHand,
   investmentPortfolio,
   annualExpenses,
   sellAtRetirement,
-  portfolioReturn,
   loading,
   error,
 }: ResultsChartProps) {
-  const returnRate = portfolioReturn / 100
-
-  const fireNumber = sellAtRetirement
-    ? annualExpenses * 25
-    : returnRate > 0
-      ? annualExpenses / returnRate
-      : Infinity
-
   const presentNetWorth = cashOnHand + investmentPortfolio
 
   const formatCurrency = (value: number) => {
@@ -137,7 +129,7 @@ export function ResultsChart({
               Target Capital
             </p>
             <p className="font-serif text-2xl text-foreground">
-              {fireNumber === Infinity ? "N/A" : formatCurrencyFull(Math.round(fireNumber))}
+              {targetFIRE === null ? "—" : formatCurrencyFull(Math.round(targetFIRE))}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
               {sellAtRetirement ? "Based on 4% withdrawal rule" : "To sustain living expenses from returns"}
@@ -153,8 +145,8 @@ export function ResultsChart({
               {formatCurrencyFull(presentNetWorth)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {fireNumber !== Infinity && fireNumber > 0
-                ? `${Math.round((presentNetWorth / fireNumber) * 100)}% of target`
+              {targetFIRE !== null && targetFIRE > 0
+                ? `${Math.round((presentNetWorth / targetFIRE) * 100)}% of target`
                 : "Cash and investments combined"}
             </p>
           </CardContent>
@@ -222,11 +214,11 @@ export function ResultsChart({
       )}
 
       {/* Summary Note */}
-      {retirementAge !== null && fireNumber !== Infinity && (
+      {retirementAge !== null && targetFIRE !== null && (
         <div className="border-t border-b border-border py-6 text-center">
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             At age {retirementAge}, projected capital of{" "}
-            <span className="text-foreground">{formatCurrencyFull(Math.round(fireNumber))}</span>{" "}
+            <span className="text-foreground">{formatCurrencyFull(Math.round(targetFIRE))}</span>{" "}
             will {sellAtRetirement ? "permit withdrawals of" : "generate"}{" "}
             <span className="text-foreground">{formatCurrencyFull(annualExpenses)}</span> annually
             {sellAtRetirement ? " following the 4% rule" : " from investment returns alone"}.

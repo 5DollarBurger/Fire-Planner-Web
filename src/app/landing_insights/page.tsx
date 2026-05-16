@@ -19,6 +19,7 @@ export default function HomePage() {
 
   const [retirementAge, setRetirementAge] = useState<number | null>(null);
   const [yearsToRetire, setYearsToRetire] = useState<number | null>(null);
+  const [targetFIRE, setTargetFIRE] = useState<number | null>(null);
   const [chartData, setChartData] = useState<ChartRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,10 +53,12 @@ export default function HomePage() {
         const retirementResult = (await retirementRes.json()) as {
           retirementAge: number;
           yearsToRetire: number;
+          targetFIRE: number;
         };
 
         setRetirementAge(retirementResult.retirementAge);
         setYearsToRetire(retirementResult.yearsToRetire);
+        setTargetFIRE(retirementResult.targetFIRE);
 
         // Skip projection if user is already FIRE-ready
         // (serializer rejects retirementAge <= age)
@@ -200,12 +203,12 @@ export default function HomePage() {
               <ResultsChart
                 retirementAge={retirementAge}
                 yearsToRetire={yearsToRetire}
+                targetFIRE={targetFIRE}
                 chartData={chartData}
                 cashOnHand={cash}
                 investmentPortfolio={investment}
                 annualExpenses={expense}
                 sellAtRetirement={sellAtRetirement}
-                portfolioReturn={investmentReturn}
                 loading={loading}
                 error={error}
               />
