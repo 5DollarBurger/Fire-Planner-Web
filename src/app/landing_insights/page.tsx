@@ -3,28 +3,52 @@
 import { CalculatorForm } from "@/components/calculator-form";
 import { HeroSection } from "@/components/hero-section";
 import { ResultsChart } from "@/components/results-chart";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import defaultInputs from "@/data/personas/default/inputs.json";
+import defaultRetirement from "@/data/personas/default/retirement-age.json";
+import defaultProjection from "@/data/personas/default/projection.json";
 
 type ChartRow = { age: number; cash: number; investment: number };
 
-export default function HomePage() {
-  // Calculator state
-  const [age, setAge] = useState(30);
-  const [cash, setCash] = useState(30000);
-  const [investment, setInvestment] = useState(50000);
-  const [investmentReturn, setInvestmentReturn] = useState(7);
-  const [sellAtRetirement, setSellAtRetirement] = useState(true);
-  const [income, setIncome] = useState(70000);
-  const [expense, setExpense] = useState(40000);
+// Derive initial form values from the persona inputs
+const cashAsset = defaultInputs.assetList.find((a) => a.name === "cash");
+const investmentAsset = defaultInputs.assetList.find((a) => a.name === "investment");
 
-  const [retirementAge, setRetirementAge] = useState<number | null>(null);
-  const [yearsToRetire, setYearsToRetire] = useState<number | null>(null);
-  const [targetFIRE, setTargetFIRE] = useState<number | null>(null);
-  const [chartData, setChartData] = useState<ChartRow[]>([]);
+const initialChartData: ChartRow[] = defaultProjection.age.map((a, i) => ({
+  age: a,
+  cash: defaultProjection.cash[i],
+  investment: defaultProjection.investment[i],
+}));
+
+export default function HomePage() {
+  // Calculator state — seeded from the default persona
+  const [age, setAge] = useState(defaultInputs.age);
+  const [cash, setCash] = useState(cashAsset?.value ?? 30000);
+  const [investment, setInvestment] = useState(investmentAsset?.value ?? 50000);
+  const [investmentReturn, setInvestmentReturn] = useState(
+    Math.round((investmentAsset?.return ?? 0.07) * 100 * 10) / 10,
+  );
+  const [sellAtRetirement, setSellAtRetirement] = useState(defaultInputs.sellInvestmentAtRetirement);
+  const [income, setIncome] = useState(defaultInputs.income);
+  const [expense, setExpense] = useState(defaultInputs.expense);
+
+  // Results — seeded from the precomputed persona responses
+  const [retirementAge, setRetirementAge] = useState<number | null>(defaultRetirement.retirementAge);
+  const [yearsToRetire, setYearsToRetire] = useState<number | null>(defaultRetirement.yearsToRetire);
+  const [targetFIRE, setTargetFIRE] = useState<number | null>(defaultRetirement.targetFIRE);
+  const [chartData, setChartData] = useState<ChartRow[]>(initialChartData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Skip the first useEffect run — initial state already reflects the default persona
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     const timer = setTimeout(async () => {
       setLoading(true);
       setError(null);
@@ -95,7 +119,7 @@ export default function HomePage() {
       } finally {
         setLoading(false);
       }
-    }, 500);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [age, cash, investment, investmentReturn, sellAtRetirement, income, expense]);

@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "fetch-personas": "node --env-file-if-exists=.env.local scripts/fetch-personas.mjs",
+    "predev": "npm run fetch-personas",
+    "prebuild": "npm run fetch-personas",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
