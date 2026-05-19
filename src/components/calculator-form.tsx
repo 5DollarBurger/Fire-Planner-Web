@@ -5,6 +5,32 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
+import { ChevronDown, ChevronUp } from "lucide-react"
+
+const STEP = 1000
+
+function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex flex-col -my-1">
+      <button
+        type="button"
+        aria-label="Increase by $1,000"
+        onClick={() => onChange(value + STEP)}
+        className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+      >
+        <ChevronUp className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        aria-label="Decrease by $1,000"
+        onClick={() => onChange(Math.max(0, value - STEP))}
+        className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+      >
+        <ChevronDown className="w-4 h-4" />
+      </button>
+    </div>
+  )
+}
 
 interface CalculatorFormProps {
   age: number
@@ -62,7 +88,7 @@ export function CalculatorForm({
         {/* Header */}
         <div className="border-b border-border px-6 py-4">
           <h2 className="font-serif text-xl text-foreground">Your Financial Position</h2>
-          <p className="text-sm text-muted-foreground mt-1">All figures in USD</p>
+          {/* <p className="text-sm text-muted-foreground mt-1">All figures in USD</p> */}
         </div>
 
         <div className="p-6 space-y-6">
@@ -87,13 +113,16 @@ export function CalculatorForm({
             <Label htmlFor="cash" className="text-xs uppercase tracking-wider text-muted-foreground">
               Cash Holdings
             </Label>
-            <Input
-              id="cash"
-              type="text"
-              value={formatCurrency(cashOnHand)}
-              onChange={(e) => setCashOnHand(parseCurrency(e.target.value))}
-              className="font-serif text-lg border-0 border-b border-border rounded-none bg-transparent px-0 focus-visible:ring-0 focus-visible:border-foreground"
-            />
+            <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+              <Input
+                id="cash"
+                type="text"
+                value={formatCurrency(cashOnHand)}
+                onChange={(e) => setCashOnHand(parseCurrency(e.target.value))}
+                className="flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
+              />
+              <Stepper value={cashOnHand} onChange={setCashOnHand} />
+            </div>
           </div>
 
           {/* Investment Portfolio */}
@@ -101,13 +130,16 @@ export function CalculatorForm({
             <Label htmlFor="portfolio" className="text-xs uppercase tracking-wider text-muted-foreground">
               Investment Portfolio
             </Label>
-            <Input
-              id="portfolio"
-              type="text"
-              value={formatCurrency(investmentPortfolio)}
-              onChange={(e) => setInvestmentPortfolio(parseCurrency(e.target.value))}
-              className="font-serif text-lg border-0 border-b border-border rounded-none bg-transparent px-0 focus-visible:ring-0 focus-visible:border-foreground"
-            />
+            <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+              <Input
+                id="portfolio"
+                type="text"
+                value={formatCurrency(investmentPortfolio)}
+                onChange={(e) => setInvestmentPortfolio(parseCurrency(e.target.value))}
+                className="flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
+              />
+              <Stepper value={investmentPortfolio} onChange={setInvestmentPortfolio} />
+            </div>
           </div>
 
           {/* Portfolio Return Slider */}
@@ -130,7 +162,7 @@ export function CalculatorForm({
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>0%</span>
-              <span>Historic avg: 7%</span>
+              {/* <span>Historic avg: 7%</span> */}
               <span>20%</span>
             </div>
           </div>
@@ -163,13 +195,16 @@ export function CalculatorForm({
             <Label htmlFor="income" className="text-xs uppercase tracking-wider text-muted-foreground">
               Annual Income
             </Label>
-            <Input
-              id="income"
-              type="text"
-              value={formatCurrency(annualIncome)}
-              onChange={(e) => setAnnualIncome(parseCurrency(e.target.value))}
-              className="font-serif text-lg border-0 border-b border-border rounded-none bg-transparent px-0 focus-visible:ring-0 focus-visible:border-foreground"
-            />
+            <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+              <Input
+                id="income"
+                type="text"
+                value={formatCurrency(annualIncome)}
+                onChange={(e) => setAnnualIncome(parseCurrency(e.target.value))}
+                className="flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
+              />
+              <Stepper value={annualIncome} onChange={setAnnualIncome} />
+            </div>
           </div>
 
           {/* Annual Expenses */}
@@ -177,13 +212,16 @@ export function CalculatorForm({
             <Label htmlFor="expenses" className="text-xs uppercase tracking-wider text-muted-foreground">
               Annual Expenses
             </Label>
-            <Input
-              id="expenses"
-              type="text"
-              value={formatCurrency(annualExpenses)}
-              onChange={(e) => setAnnualExpenses(parseCurrency(e.target.value))}
-              className="font-serif text-lg border-0 border-b border-border rounded-none bg-transparent px-0 focus-visible:ring-0 focus-visible:border-foreground"
-            />
+            <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+              <Input
+                id="expenses"
+                type="text"
+                value={formatCurrency(annualExpenses)}
+                onChange={(e) => setAnnualExpenses(parseCurrency(e.target.value))}
+                className="flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
+              />
+              <Stepper value={annualExpenses} onChange={setAnnualExpenses} />
+            </div>
           </div>
 
           {/* Savings Rate */}

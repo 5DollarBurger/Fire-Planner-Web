@@ -3,7 +3,7 @@ import { join } from "node:path"
 
 const REPO_BASE = "https://raw.githubusercontent.com/5DollarBurger/FIRE-Planner/main/personas"
 const PERSONAS = ["default"]
-const FILES = ["inputs.json", "retirement-age.json", "projection.json"]
+const FILES = ["inputs.json", "retirement-age.json"]
 
 const TOKEN = process.env.GITHUB_TOKEN
 if (!TOKEN) {

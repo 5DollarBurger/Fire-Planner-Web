@@ -2,14 +2,14 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+    Bar,
+    BarChart,
+    CartesianGrid,
+    ReferenceLine,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
 } from "recharts"
 
 interface CustomTooltipProps {
@@ -26,6 +26,8 @@ export interface ChartRow {
 interface ResultsChartProps {
   retirementAge: number | null
   yearsToRetire: number | null
+  monthsToRetire: number | null
+  daysToRetire: number | null
   targetFIRE: number | null
   chartData: ChartRow[]
   cashOnHand: number
@@ -39,6 +41,8 @@ interface ResultsChartProps {
 export function ResultsChart({
   retirementAge,
   yearsToRetire,
+  monthsToRetire,
+  daysToRetire,
   targetFIRE,
   chartData,
   cashOnHand,
@@ -62,6 +66,15 @@ export function ResultsChart({
       currency: "USD",
       maximumFractionDigits: 0,
     }).format(value)
+
+  const fireDate = (() => {
+    if (yearsToRetire === null) return null
+    const d = new Date()
+    d.setFullYear(d.getFullYear() + yearsToRetire)
+    d.setMonth(d.getMonth() + (monthsToRetire ?? 0))
+    d.setDate(d.getDate() + (daysToRetire ?? 0))
+    return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+  })()
 
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
@@ -90,10 +103,15 @@ export function ResultsChart({
     <div className="space-y-8">
       {/* Main Result Card */}
       <Card className="border-border bg-card overflow-hidden">
-        <div className="border-b border-border px-6 py-3 bg-primary">
-          <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground">
+        <div className="border-b border-border px-6 py-4 bg-primary flex items-center justify-between gap-4 flex-wrap">
+          <p className="font-serif text-xl md:text-2xl text-primary-foreground tracking-tight">
             Projected Independence Date
           </p>
+          {fireDate ? (
+            <p className="font-serif text-xl md:text-2xl text-primary-foreground tracking-tight">
+              {fireDate}
+            </p>
+          ) : null}
         </div>
         <CardContent className="p-8 text-center">
           {error ? (
@@ -102,18 +120,47 @@ export function ResultsChart({
             <p className="text-muted-foreground">Calculating...</p>
           ) : retirementAge !== null && yearsToRetire !== null ? (
             <>
-              <p className="font-serif text-7xl md:text-8xl text-foreground tracking-tight mb-4">
-                {yearsToRetire}
-              </p>
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
-                {yearsToRetire === 1 ? "Year to Independence" : "Years to Independence"}
-              </p>
-              <div className="h-px bg-border w-16 mx-auto mb-6" />
-              <p className="text-lg text-foreground font-serif">
-                {yearsToRetire === 0
-                  ? "You have achieved financial independence"
-                  : `Retire at age ${retirementAge}`}
-              </p>
+              {yearsToRetire === 0 && !monthsToRetire && !daysToRetire ? (
+                <p className="font-serif text-3xl md:text-4xl text-foreground tracking-tight mb-6">
+                  You have achieved financial independence
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-end justify-center gap-8 md:gap-12 mb-4">
+                    <div className="flex flex-col items-center">
+                      <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
+                        {yearsToRetire}
+                      </p>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
+                        {yearsToRetire === 1 ? "Year" : "Years"}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
+                        {monthsToRetire ?? 0}
+                      </p>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
+                        {monthsToRetire === 1 ? "Month" : "Months"}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
+                        {daysToRetire ?? 0}
+                      </p>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
+                        {daysToRetire === 1 ? "Day" : "Days"}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
+                    to Independence
+                  </p>
+                  <div className="h-px bg-border w-16 mx-auto mb-6" />
+                  <p className="text-lg text-foreground font-serif">
+                    Retire by age {retirementAge}
+                  </p>
+                </>
+              )}
             </>
           ) : null}
         </CardContent>
