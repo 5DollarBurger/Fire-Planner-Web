@@ -6,8 +6,8 @@ import { ResultsChart } from "@/components/results-chart";
 import { useEffect, useRef, useState } from "react";
 
 import defaultInputs from "@/data/personas/default/inputs.json";
-import defaultRetirement from "@/data/personas/default/retirement-age.json";
 import defaultProjection from "@/data/personas/default/projection.json";
+import defaultRetirement from "@/data/personas/default/retirement-age.json";
 
 type ChartRow = { age: number; cash: number; investment: number };
 
@@ -86,10 +86,10 @@ export default function HomePage() {
 
         // Skip projection if user is already FIRE-ready
         // (serializer rejects retirementAge <= age)
-        if (retirementResult.retirementAge <= age) {
-          setChartData([]);
-          return;
-        }
+        // if (retirementResult.retirementAge <= age) {
+        //   setChartData([]);
+        //   return;
+        // }
 
         const projectionRes = await fetch("/api/projection", {
           method: "POST",

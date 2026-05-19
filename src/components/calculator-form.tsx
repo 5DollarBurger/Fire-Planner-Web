@@ -62,7 +62,7 @@ export function CalculatorForm({
         {/* Header */}
         <div className="border-b border-border px-6 py-4">
           <h2 className="font-serif text-xl text-foreground">Your Financial Position</h2>
-          <p className="text-sm text-muted-foreground mt-1">All figures in USD</p>
+          {/* <p className="text-sm text-muted-foreground mt-1">All figures in USD</p> */}
         </div>
 
         <div className="p-6 space-y-6">
