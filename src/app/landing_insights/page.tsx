@@ -48,7 +48,9 @@ export default function HomePage() {
 
   // Results — seeded from the precomputed persona responses
   const [retirementAge, setRetirementAge] = useState<number | null>(defaultRetirement.retirementAge);
-  const [yearsToRetire, setYearsToRetire] = useState<number | null>(defaultRetirement.yearsToRetire);
+  const [yearsToRetire, setYearsToRetire] = useState<number | null>(defaultRetirement.fineProjection.yearsToRetire);
+  const [monthsToRetire, setMonthsToRetire] = useState<number | null>(defaultRetirement.fineProjection.monthsToRetire);
+  const [daysToRetire, setDaysToRetire] = useState<number | null>(defaultRetirement.fineProjection.daysToRetire);
   const [targetFIRE, setTargetFIRE] = useState<number | null>(defaultRetirement.fineProjection.targetFIRE);
   const [chartData, setChartData] = useState<ChartRow[]>(initialChartData);
   const [loading, setLoading] = useState(false);
@@ -95,7 +97,9 @@ export default function HomePage() {
         };
 
         setRetirementAge(retirementResult.retirementAge);
-        setYearsToRetire(retirementResult.yearsToRetire);
+        setYearsToRetire(retirementResult.fineProjection.yearsToRetire);
+        setMonthsToRetire(retirementResult.fineProjection.monthsToRetire);
+        setDaysToRetire(retirementResult.fineProjection.daysToRetire);
         setTargetFIRE(retirementResult.fineProjection.targetFIRE);
 
         const proj = retirementResult.fineProjection.liquidAssetDict;
@@ -220,6 +224,8 @@ export default function HomePage() {
               <ResultsChart
                 retirementAge={retirementAge}
                 yearsToRetire={yearsToRetire}
+                monthsToRetire={monthsToRetire}
+                daysToRetire={daysToRetire}
                 targetFIRE={targetFIRE}
                 chartData={chartData}
                 cashOnHand={cash}
