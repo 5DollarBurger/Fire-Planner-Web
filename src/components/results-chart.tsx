@@ -67,6 +67,15 @@ export function ResultsChart({
       maximumFractionDigits: 0,
     }).format(value)
 
+  const fireDate = (() => {
+    if (yearsToRetire === null) return null
+    const d = new Date()
+    d.setFullYear(d.getFullYear() + yearsToRetire)
+    d.setMonth(d.getMonth() + (monthsToRetire ?? 0))
+    d.setDate(d.getDate() + (daysToRetire ?? 0))
+    return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+  })()
+
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
@@ -94,10 +103,15 @@ export function ResultsChart({
     <div className="space-y-8">
       {/* Main Result Card */}
       <Card className="border-border bg-card overflow-hidden">
-        <div className="border-b border-border px-6 py-3 bg-primary">
-          <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground">
+        <div className="border-b border-border px-6 py-4 bg-primary flex items-center justify-between gap-4 flex-wrap">
+          <p className="font-serif text-xl md:text-2xl text-primary-foreground tracking-tight">
             Projected Independence Date
           </p>
+          {fireDate ? (
+            <p className="font-serif text-xl md:text-2xl text-primary-foreground tracking-tight">
+              {fireDate}
+            </p>
+          ) : null}
         </div>
         <CardContent className="p-8 text-center">
           {error ? (
