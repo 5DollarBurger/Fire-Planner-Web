@@ -6,15 +6,28 @@ import { ResultsChart } from "@/components/results-chart";
 import { useEffect, useRef, useState } from "react";
 
 import defaultInputs from "@/data/personas/default/inputs.json";
-import defaultProjection from "@/data/personas/default/projection.json";
 import defaultRetirement from "@/data/personas/default/retirement-age.json";
 
 type ChartRow = { age: number; cash: number; investment: number };
+
+type FineProjection = {
+  yearsToRetire: number;
+  monthsToRetire: number;
+  daysToRetire: number;
+  targetFIRE: number;
+  liquidAssetDict: {
+    cash: number[];
+    investment: number[];
+    total: number[];
+    age: number[];
+  };
+};
 
 // Derive initial form values from the persona inputs
 const cashAsset = defaultInputs.assetList.find((a) => a.name === "cash");
 const investmentAsset = defaultInputs.assetList.find((a) => a.name === "investment");
 
+const defaultProjection = defaultRetirement.fineProjection.liquidAssetDict;
 const initialChartData: ChartRow[] = defaultProjection.age.map((a, i) => ({
   age: a,
   cash: defaultProjection.cash[i],
@@ -36,7 +49,7 @@ export default function HomePage() {
   // Results — seeded from the precomputed persona responses
   const [retirementAge, setRetirementAge] = useState<number | null>(defaultRetirement.retirementAge);
   const [yearsToRetire, setYearsToRetire] = useState<number | null>(defaultRetirement.yearsToRetire);
-  const [targetFIRE, setTargetFIRE] = useState<number | null>(defaultRetirement.targetFIRE);
+  const [targetFIRE, setTargetFIRE] = useState<number | null>(defaultRetirement.fineProjection.targetFIRE);
   const [chartData, setChartData] = useState<ChartRow[]>(initialChartData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,39 +91,19 @@ export default function HomePage() {
           retirementAge: number;
           yearsToRetire: number;
           targetFIRE: number;
+          fineProjection: FineProjection;
         };
 
         setRetirementAge(retirementResult.retirementAge);
         setYearsToRetire(retirementResult.yearsToRetire);
-        setTargetFIRE(retirementResult.targetFIRE);
+        setTargetFIRE(retirementResult.fineProjection.targetFIRE);
 
-        // Skip projection if user is already FIRE-ready
-        // (serializer rejects retirementAge <= age)
-        // if (retirementResult.retirementAge <= age) {
-        //   setChartData([]);
-        //   return;
-        // }
-
-        const projectionRes = await fetch("/api/projection", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...customerPayload, retirementAge: retirementResult.retirementAge }),
-        });
-        if (!projectionRes.ok) {
-          const errBody = await projectionRes.json().catch(() => ({}));
-          throw new Error(`projection ${projectionRes.status}: ${JSON.stringify(errBody)}`);
-        }
-        const projectionResult = (await projectionRes.json()) as {
-          age: number[];
-          cash: number[];
-          investment: number[];
-        };
-
+        const proj = retirementResult.fineProjection.liquidAssetDict;
         setChartData(
-          projectionResult.age.map((a, i) => ({
+          proj.age.map((a, i) => ({
             age: a,
-            cash: projectionResult.cash[i],
-            investment: projectionResult.investment[i],
+            cash: proj.cash[i],
+            investment: proj.investment[i],
           })),
         );
       } catch (err: unknown) {
