@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { MOCK_SNAPSHOTS } from "@/data/mock-snapshots"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import { useEffect, useState } from "react"
 
 type FineProjection = {
@@ -54,6 +55,31 @@ function formatCurrencyShort(value: number) {
 function parseCurrency(str: string) {
   const n = parseInt(str.replace(/[^0-9]/g, ""), 10)
   return isNaN(n) ? 0 : n
+}
+
+const STEP = 1000
+
+function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex flex-col -my-1">
+      <button
+        type="button"
+        aria-label="Increase by $1,000"
+        onClick={() => onChange(value + STEP)}
+        className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+      >
+        <ChevronUp className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        aria-label="Decrease by $1,000"
+        onClick={() => onChange(Math.max(0, value - STEP))}
+        className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+      >
+        <ChevronDown className="w-4 h-4" />
+      </button>
+    </div>
+  )
 }
 
 const latestSnap = MOCK_SNAPSHOTS[MOCK_SNAPSHOTS.length - 1]
@@ -415,6 +441,7 @@ export default function DashboardPage() {
                         onChange={(e) => setLiveIncome(parseCurrency(e.target.value))}
                         className={inputClass}
                       />
+                      <Stepper value={liveIncome} onChange={setLiveIncome} />
                     </div>
                   </div>
 
@@ -429,6 +456,7 @@ export default function DashboardPage() {
                         onChange={(e) => setLiveExpense(parseCurrency(e.target.value))}
                         className={inputClass}
                       />
+                      <Stepper value={liveExpense} onChange={setLiveExpense} />
                     </div>
                   </div>
 
@@ -443,6 +471,7 @@ export default function DashboardPage() {
                         onChange={(e) => setLiveCash(parseCurrency(e.target.value))}
                         className={inputClass}
                       />
+                      <Stepper value={liveCash} onChange={setLiveCash} />
                     </div>
                   </div>
 
@@ -457,6 +486,7 @@ export default function DashboardPage() {
                         onChange={(e) => setLiveInvestment(parseCurrency(e.target.value))}
                         className={inputClass}
                       />
+                      <Stepper value={liveInvestment} onChange={setLiveInvestment} />
                     </div>
                   </div>
 
