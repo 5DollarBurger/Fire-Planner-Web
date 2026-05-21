@@ -39,6 +39,7 @@ interface ResultsChartProps {
   error: string | null
   overlayData?: { age: number; total: number }[]
   overlayLabel?: string
+  overlayRetirementAge?: number | null
 }
 
 export function ResultsChart({
@@ -56,6 +57,7 @@ export function ResultsChart({
   error,
   overlayData,
   overlayLabel = "Baseline",
+  overlayRetirementAge,
 }: ResultsChartProps) {
   const presentNetWorth = cashOnHand + investmentPortfolio
 
@@ -256,6 +258,15 @@ export function ResultsChart({
                     width={55}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--muted)", opacity: 0.3 }} />
+                  {overlayRetirementAge != null && (
+                    <ReferenceLine
+                      x={overlayRetirementAge}
+                      stroke="var(--muted-foreground)"
+                      strokeDasharray="4 4"
+                      strokeWidth={1}
+                      label={{ value: "Prev. FIRE", position: "top", fill: "var(--muted-foreground)", fontSize: 10 }}
+                    />
+                  )}
                   {retirementAge !== null && (
                     <ReferenceLine
                       x={retirementAge}

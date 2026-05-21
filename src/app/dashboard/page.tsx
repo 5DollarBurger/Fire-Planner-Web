@@ -251,9 +251,11 @@ export default function DashboardPage() {
                 const loading = loadingStates[i]
                 const netWorth = snap.assets.reduce((sum, a) => sum + a.value, 0)
                 const isSelected = i === selectedIndex
+                const snapCash = snap.assets.find((a) => a.name === "cash")
+                const snapInv = snap.assets.find((a) => a.name === "investment")
 
                 return (
-                  <button key={snap.id} onClick={() => setSelectedIndex(i)} className="text-left w-full">
+                  <button key={snap.id} onClick={() => setSelectedIndex(i)} className="text-left w-full group">
                     <Card
                       className={`border transition-colors ${
                         isSelected
@@ -282,6 +284,39 @@ export default function DashboardPage() {
                         ) : (
                           <p className="text-xs text-destructive">Unavailable</p>
                         )}
+                        <div className="overflow-hidden max-h-0 group-hover:max-h-48 transition-all duration-200 ease-in-out">
+                          <div className="h-px bg-border mt-3 mb-3" />
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Income</p>
+                              <p className="text-xs font-serif text-foreground">{formatCurrency(snap.income)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Expenses</p>
+                              <p className="text-xs font-serif text-foreground">{formatCurrency(snap.expense)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Cash</p>
+                              <p className="text-xs font-serif text-foreground">{formatCurrency(snapCash?.value ?? 0)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Investment</p>
+                              <p className="text-xs font-serif text-foreground">{formatCurrency(snapInv?.value ?? 0)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Return</p>
+                              <p className="text-xs font-serif text-foreground">
+                                {Math.round((snapInv?.return ?? 0) * 100 * 10) / 10}%
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Strategy</p>
+                              <p className="text-xs font-serif text-foreground">
+                                {snap.sell_at_retirement ? "4% rule" : "Returns only"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   </button>
@@ -493,7 +528,8 @@ export default function DashboardPage() {
               loading={liveLoading && liveResult === null}
               error={null}
               overlayData={baselineOverlay}
-              overlayLabel="Previous Projection"
+              overlayLabel="Prev. Projection"
+              overlayRetirementAge={selectedResult?.retirementAge ?? null}
             />
           </div>
         </div>
