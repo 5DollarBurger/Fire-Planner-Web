@@ -37,6 +37,7 @@ const initialChartData: ChartRow[] = defaultProjection.age.map((a, i) => ({
 export default function HomePage() {
   // Calculator state — seeded from the default persona
   const [age, setAge] = useState(defaultInputs.age);
+  const [ageElapsed, setAgeElapsed] = useState(defaultInputs.ageElapsed);
   const [cash, setCash] = useState(cashAsset?.value ?? 30000);
   const [investment, setInvestment] = useState(investmentAsset?.value ?? 50000);
   const [investmentReturn, setInvestmentReturn] = useState(
@@ -70,6 +71,7 @@ export default function HomePage() {
 
       const customerPayload = {
         age,
+        ageElapsed,
         income,
         expense,
         sellInvestmentAtRetirement: sellAtRetirement,
