@@ -1,12 +1,13 @@
 "use client"
 
-import { ResultsChart, ChartRow } from "@/components/results-chart"
+import { ChartRow, ResultsChart } from "@/components/results-chart"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { useEffect, useState } from "react"
+import { Switch } from "@/components/ui/switch"
 import { MOCK_SNAPSHOTS } from "@/data/mock-snapshots"
+import { useEffect, useState } from "react"
 
 type FineProjection = {
   yearsToRetire: number
@@ -116,6 +117,7 @@ export default function DashboardPage() {
   const [liveReturn, setLiveReturn] = useState(
     Math.round((latestInvAsset?.return ?? 0.07) * 100 * 10) / 10
   )
+  const [liveSellAtRetirement, setLiveSellAtRetirement] = useState(latestSnap.sell_at_retirement)
   const [liveResult, setLiveResult] = useState<SnapshotResult | null>(null)
   const [liveLoading, setLiveLoading] = useState(true)
   const [saved, setSaved] = useState(false)
@@ -134,7 +136,7 @@ export default function DashboardPage() {
             ageElapsed: latestSnap.ageElapsed,
             income: liveIncome,
             expense: liveExpense,
-            sellInvestmentAtRetirement: latestSnap.sell_at_retirement,
+            sellInvestmentAtRetirement: liveSellAtRetirement,
             assetList: [
               { name: "cash", value: liveCash, return: 0 },
               { name: "investment", value: liveInvestment, return: liveReturn / 100 },
@@ -147,7 +149,7 @@ export default function DashboardPage() {
       }
     }, 1000)
     return () => clearTimeout(timer)
-  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn])
+  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])
 
   // ── Derived chart data ─────────────────────────────────────────────────
   // Bars = live scenario
@@ -174,7 +176,8 @@ export default function DashboardPage() {
     liveExpense !== latestSnap.expense ||
     liveCash !== (latestCashAsset?.value ?? 0) ||
     liveInvestment !== (latestInvAsset?.value ?? 0) ||
-    Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001
+    Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001 ||
+    liveSellAtRetirement !== latestSnap.sell_at_retirement
 
   const ageDelta =
     liveResult && selectedResult
@@ -287,201 +290,211 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── Two-column: calculator | analysis ───────────────────── */}
-          <div className="grid gap-12 lg:grid-cols-[380px_1fr]">
-            {/* Left: sticky calculator panel */}
-            <div className="lg:self-start">
-              <Card className="sticky top-24 border-border bg-card">
-                <CardContent className="p-0">
-                  <div className="border-b border-border px-6 py-4 flex items-center justify-between gap-4">
-                    <h2 className="font-serif text-xl text-foreground">What-If Calculator</h2>
-                    {liveLoading && (
-                      <span className="text-xs text-muted-foreground">Calculating…</span>
-                    )}
-                  </div>
-
-                  <div className="p-6 space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Annual Income
-                      </Label>
-                      <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
-                        <Input
-                          type="text"
-                          value={formatCurrency(liveIncome)}
-                          onChange={(e) => setLiveIncome(parseCurrency(e.target.value))}
-                          className={inputClass}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Annual Expenses
-                      </Label>
-                      <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
-                        <Input
-                          type="text"
-                          value={formatCurrency(liveExpense)}
-                          onChange={(e) => setLiveExpense(parseCurrency(e.target.value))}
-                          className={inputClass}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Cash Holdings
-                      </Label>
-                      <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
-                        <Input
-                          type="text"
-                          value={formatCurrency(liveCash)}
-                          onChange={(e) => setLiveCash(parseCurrency(e.target.value))}
-                          className={inputClass}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Investment Portfolio
-                      </Label>
-                      <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
-                        <Input
-                          type="text"
-                          value={formatCurrency(liveInvestment)}
-                          onChange={(e) => setLiveInvestment(parseCurrency(e.target.value))}
-                          className={inputClass}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-baseline justify-between">
-                        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                          Expected Return
-                        </Label>
-                        <span className="font-serif text-lg text-foreground">{liveReturn}%</span>
-                      </div>
-                      <Slider
-                        value={liveReturn}
-                        onValueChange={(value) => setLiveReturn(value as number)}
-                        min={0}
-                        max={20}
-                        step={0.5}
-                        className="py-2"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>0%</span>
-                        <span>20%</span>
-                      </div>
-                    </div>
-
-                    <div className="h-px bg-border" />
-
-                    <button
-                      onClick={() => setSaved(true)}
-                      disabled={saved}
-                      className="w-full text-sm border border-border px-4 py-2.5 hover:border-foreground transition-colors disabled:opacity-50"
-                    >
-                      {saved ? "Saved ✓" : "Save Analysis"}
-                    </button>
-
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Age and withdrawal strategy are fixed to your latest snapshot.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right: delta summary + analysis */}
-            <div>
-              {/* Delta summary — shown when live inputs differ from defaults */}
-              {isModified && liveResult && selectedResult && (
-                <div className="mb-8 border border-border bg-secondary/30 p-6">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-5">
-                    Live vs Baseline — {formatDate(selected.created_date)}
+          {/* ── Delta summary — full width, shown when live inputs differ ── */}
+          {isModified && liveResult && selectedResult && (
+            <div className="mb-8 border border-border bg-secondary/30 p-6">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-5">
+                Live vs Baseline — {formatDate(selected.created_date)}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div>
+                  <p className="font-serif text-2xl text-foreground">
+                    {liveResult.retirementAge}{" "}
+                    <span className="text-base text-muted-foreground">
+                      vs {selectedResult.retirementAge}
+                    </span>
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div>
-                      <p className="font-serif text-2xl text-foreground">
-                        {liveResult.retirementAge}{" "}
-                        <span className="text-base text-muted-foreground">
-                          vs {selectedResult.retirementAge}
-                        </span>
-                      </p>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
-                        Retirement Age
-                      </p>
-                      {ageDelta !== null && ageDelta !== 0 && (
-                        <p className={`text-sm mt-2 ${ageDelta > 0 ? "text-foreground" : "text-destructive"}`}>
-                          {ageDelta > 0
-                            ? `${ageDelta} year${ageDelta !== 1 ? "s" : ""} earlier`
-                            : `${Math.abs(ageDelta)} year${Math.abs(ageDelta) !== 1 ? "s" : ""} later`}
-                        </p>
-                      )}
-                      {ageDelta === 0 && (
-                        <p className="text-sm mt-2 text-muted-foreground">No change</p>
-                      )}
-                    </div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                    Retirement Age
+                  </p>
+                  {ageDelta !== null && ageDelta !== 0 && (
+                    <p className={`text-sm mt-2 ${ageDelta > 0 ? "text-foreground" : "text-destructive"}`}>
+                      {ageDelta > 0
+                        ? `${ageDelta} year${ageDelta !== 1 ? "s" : ""} earlier`
+                        : `${Math.abs(ageDelta)} year${Math.abs(ageDelta) !== 1 ? "s" : ""} later`}
+                    </p>
+                  )}
+                  {ageDelta === 0 && (
+                    <p className="text-sm mt-2 text-muted-foreground">No change</p>
+                  )}
+                </div>
 
-                    <div>
-                      <p className="font-serif text-2xl text-foreground">
-                        {liveResult.fineProjection.yearsToRetire}y{" "}
-                        {Math.round(liveResult.fineProjection.monthsToRetire)}m{" "}
-                        <span className="text-base text-muted-foreground">
-                          vs {selectedResult.fineProjection.yearsToRetire}y{" "}
-                          {Math.round(selectedResult.fineProjection.monthsToRetire)}m
-                        </span>
-                      </p>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
-                        Years to Retire
-                      </p>
-                    </div>
+                <div>
+                  <p className="font-serif text-2xl text-foreground">
+                    {liveResult.fineProjection.yearsToRetire}y{" "}
+                    {Math.round(liveResult.fineProjection.monthsToRetire)}m{" "}
+                    <span className="text-base text-muted-foreground">
+                      vs {selectedResult.fineProjection.yearsToRetire}y{" "}
+                      {Math.round(selectedResult.fineProjection.monthsToRetire)}m
+                    </span>
+                  </p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                    Years to Retire
+                  </p>
+                </div>
 
-                    <div>
-                      <p className="font-serif text-2xl text-foreground">
-                        {formatCurrencyShort(liveResult.fineProjection.targetFIRE)}{" "}
-                        <span className="text-base text-muted-foreground">
-                          vs {formatCurrencyShort(selectedResult.fineProjection.targetFIRE)}
-                        </span>
-                      </p>
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
-                        Target Capital
-                      </p>
+                <div>
+                  <p className="font-serif text-2xl text-foreground">
+                    {formatCurrencyShort(liveResult.fineProjection.targetFIRE)}{" "}
+                    <span className="text-base text-muted-foreground">
+                      vs {formatCurrencyShort(selectedResult.fineProjection.targetFIRE)}
+                    </span>
+                  </p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">
+                    Target Capital
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Analysis header — full width ─────────────────────────── */}
+          <div className="mb-8 flex items-center gap-4">
+            <h3 className="font-serif text-lg text-foreground whitespace-nowrap">
+              Analysis — {formatDate(selected.created_date)}
+            </h3>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* ── Two-column: calculator | results (tops aligned) ─────── */}
+          <div className="grid gap-12 lg:grid-cols-[380px_1fr] items-start">
+            {/* Left: sticky calculator panel */}
+            <Card className="sticky top-24 border-border bg-card">
+              <CardContent className="p-0">
+                <div className="border-b border-border px-6 py-4 flex items-center justify-between gap-4">
+                  <h2 className="font-serif text-xl text-foreground">What-If Calculator</h2>
+                  {liveLoading && (
+                    <span className="text-xs text-muted-foreground">Calculating…</span>
+                  )}
+                </div>
+
+                <div className="p-6 space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Annual Income
+                    </Label>
+                    <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+                      <Input
+                        type="text"
+                        value={formatCurrency(liveIncome)}
+                        onChange={(e) => setLiveIncome(parseCurrency(e.target.value))}
+                        className={inputClass}
+                      />
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Annual Expenses
+                    </Label>
+                    <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+                      <Input
+                        type="text"
+                        value={formatCurrency(liveExpense)}
+                        onChange={(e) => setLiveExpense(parseCurrency(e.target.value))}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Cash Holdings
+                    </Label>
+                    <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+                      <Input
+                        type="text"
+                        value={formatCurrency(liveCash)}
+                        onChange={(e) => setLiveCash(parseCurrency(e.target.value))}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Investment Portfolio
+                    </Label>
+                    <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+                      <Input
+                        type="text"
+                        value={formatCurrency(liveInvestment)}
+                        onChange={(e) => setLiveInvestment(parseCurrency(e.target.value))}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-baseline justify-between">
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                        Expected Return
+                      </Label>
+                      <span className="font-serif text-lg text-foreground">{liveReturn}%</span>
+                    </div>
+                    <Slider
+                      value={liveReturn}
+                      onValueChange={(value) => setLiveReturn(value as number)}
+                      min={0}
+                      max={20}
+                      step={0.5}
+                      className="py-2"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0%</span>
+                      <span>20%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                        Sell at Retirement
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {liveSellAtRetirement ? "4% withdrawal rule" : "Live on investment returns"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={liveSellAtRetirement}
+                      onCheckedChange={setLiveSellAtRetirement}
+                    />
+                  </div>
+
+                  <div className="h-px bg-border" />
+
+                  <button
+                    onClick={() => setSaved(true)}
+                    disabled={saved}
+                    className="w-full text-sm border border-border px-4 py-2.5 hover:border-foreground transition-colors disabled:opacity-50"
+                  >
+                    {saved ? "Saved ✓" : "Save Analysis"}
+                  </button>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Age is fixed to your latest snapshot.
+                  </p>
                 </div>
-              )}
+              </CardContent>
+            </Card>
 
-              {/* Analysis header */}
-              <div className="mb-8 flex items-center gap-4">
-                <h3 className="font-serif text-lg text-foreground whitespace-nowrap">
-                  Analysis — {formatDate(selected.created_date)}
-                </h3>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-
-              {/* Bars = live scenario, dashed line = selected baseline */}
-              <ResultsChart
-                retirementAge={liveResult?.retirementAge ?? null}
-                yearsToRetire={liveResult?.fineProjection.yearsToRetire ?? null}
-                monthsToRetire={liveResult?.fineProjection.monthsToRetire ?? null}
-                daysToRetire={liveResult?.fineProjection.daysToRetire ?? null}
-                targetFIRE={liveResult?.fineProjection.targetFIRE ?? null}
-                chartData={liveChartData}
-                cashOnHand={liveCash}
-                investmentPortfolio={liveInvestment}
-                annualExpenses={liveExpense}
-                sellAtRetirement={latestSnap.sell_at_retirement}
-                loading={liveLoading && liveResult === null}
-                error={null}
-                overlayData={baselineOverlay}
-                overlayLabel="Saved snapshot"
-              />
-            </div>
+            {/* Right: ResultsChart — bars = live scenario, dashed = selected baseline */}
+            <ResultsChart
+              retirementAge={liveResult?.retirementAge ?? null}
+              yearsToRetire={liveResult?.fineProjection.yearsToRetire ?? null}
+              monthsToRetire={liveResult?.fineProjection.monthsToRetire ?? null}
+              daysToRetire={liveResult?.fineProjection.daysToRetire ?? null}
+              targetFIRE={liveResult?.fineProjection.targetFIRE ?? null}
+              chartData={liveChartData}
+              cashOnHand={liveCash}
+              investmentPortfolio={liveInvestment}
+              annualExpenses={liveExpense}
+              sellAtRetirement={liveSellAtRetirement}
+              loading={liveLoading && liveResult === null}
+              error={null}
+              overlayData={baselineOverlay}
+              overlayLabel="Previous Projection"
+            />
           </div>
         </div>
       </section>
