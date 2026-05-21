@@ -3,8 +3,9 @@
 import { Card, CardContent } from "@/components/ui/card"
 import {
     Bar,
-    BarChart,
+    ComposedChart,
     CartesianGrid,
+    Line,
     ReferenceLine,
     ResponsiveContainer,
     Tooltip,
@@ -36,6 +37,9 @@ interface ResultsChartProps {
   sellAtRetirement: boolean
   loading: boolean
   error: string | null
+  overlayData?: { age: number; total: number }[]
+  overlayLabel?: string
+  overlayRetirementAge?: number | null
 }
 
 export function ResultsChart({
@@ -51,6 +55,9 @@ export function ResultsChart({
   sellAtRetirement,
   loading,
   error,
+  overlayData,
+  overlayLabel = "Baseline",
+  overlayRetirementAge,
 }: ResultsChartProps) {
   const presentNetWorth = cashOnHand + investmentPortfolio
 
@@ -98,6 +105,11 @@ export function ResultsChart({
     }
     return null
   }
+
+  const mergedData = chartData.map((row) => {
+    const o = overlayData?.find((d) => d.age === row.age)
+    return { ...row, liveTotal: o?.total }
+  })
 
   return (
     <div className="space-y-8">
@@ -177,7 +189,7 @@ export function ResultsChart({
               {targetFIRE === null ? "—" : formatCurrencyFull(Math.round(targetFIRE))}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {sellAtRetirement ? "Based on 4% withdrawal rule" : "To sustain living expenses from returns"}
+              {sellAtRetirement ? "Cash out investments at retirement" : "To sustain living expenses from returns"}
             </p>
           </CardContent>
         </Card>
@@ -206,7 +218,7 @@ export function ResultsChart({
               <h3 className="font-serif text-lg text-foreground">Wealth Projection</h3>
               <p className="text-xs text-muted-foreground mt-1">Net worth over time, nominal values</p>
             </div>
-            <div className="flex items-center gap-6 text-xs">
+            <div className="flex items-center gap-6 text-xs flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-primary" />
                 <span className="text-muted-foreground">Cash</span>
@@ -215,13 +227,19 @@ export function ResultsChart({
                 <div className="w-3 h-3 bg-accent" />
                 <span className="text-muted-foreground">Investments</span>
               </div>
+              {overlayData && overlayData.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <div className="w-6 border-t-2 border-dashed border-muted-foreground" />
+                  <span className="text-muted-foreground">{overlayLabel}</span>
+                </div>
+              )}
             </div>
           </div>
           <CardContent className="p-6">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
+                <ComposedChart
+                  data={mergedData}
                   margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
                 >
                   <CartesianGrid strokeDasharray="1 3" vertical={false} stroke="var(--border)" />
@@ -240,6 +258,15 @@ export function ResultsChart({
                     width={55}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--muted)", opacity: 0.3 }} />
+                  {overlayRetirementAge != null && (
+                    <ReferenceLine
+                      x={overlayRetirementAge}
+                      stroke="var(--muted-foreground)"
+                      strokeDasharray="4 4"
+                      strokeWidth={1}
+                      label={{ value: "Prev. FIRE", position: "top", fill: "var(--muted-foreground)", fontSize: 10 }}
+                    />
+                  )}
                   {retirementAge !== null && (
                     <ReferenceLine
                       x={retirementAge}
@@ -251,7 +278,19 @@ export function ResultsChart({
                   )}
                   <Bar dataKey="cash" name="Cash" stackId="wealth" fill="var(--primary)" radius={0} />
                   <Bar dataKey="investment" name="Investments" stackId="wealth" fill="var(--accent)" radius={0} />
-                </BarChart>
+                  {overlayData && overlayData.length > 0 && (
+                    <Line
+                      dataKey="liveTotal"
+                      name="Live scenario"
+                      type="monotone"
+                      stroke="var(--muted-foreground)"
+                      strokeWidth={1.5}
+                      strokeDasharray="5 4"
+                      dot={false}
+                      connectNulls
+                    />
+                  )}
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -266,7 +305,7 @@ export function ResultsChart({
             <span className="text-foreground">{formatCurrencyFull(Math.round(targetFIRE))}</span>{" "}
             will {sellAtRetirement ? "permit withdrawals of" : "generate"}{" "}
             <span className="text-foreground">{formatCurrencyFull(annualExpenses)}</span> annually
-            {sellAtRetirement ? " following the 4% rule" : " from investment returns alone"}.
+            {sellAtRetirement ? " by cashing out investments at retirement" : " from investment returns alone"}.
           </p>
         </div>
       )}
