@@ -189,7 +189,7 @@ export function ResultsChart({
               {targetFIRE === null ? "—" : formatCurrencyFull(Math.round(targetFIRE))}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              {sellAtRetirement ? "Based on 4% withdrawal rule" : "To sustain living expenses from returns"}
+              {sellAtRetirement ? "Cash out investments at retirement" : "To sustain living expenses from returns"}
             </p>
           </CardContent>
         </Card>
@@ -305,7 +305,7 @@ export function ResultsChart({
             <span className="text-foreground">{formatCurrencyFull(Math.round(targetFIRE))}</span>{" "}
             will {sellAtRetirement ? "permit withdrawals of" : "generate"}{" "}
             <span className="text-foreground">{formatCurrencyFull(annualExpenses)}</span> annually
-            {sellAtRetirement ? " following the 4% rule" : " from investment returns alone"}.
+            {sellAtRetirement ? " by cashing out investments at retirement" : " from investment returns alone"}.
           </p>
         </div>
       )}

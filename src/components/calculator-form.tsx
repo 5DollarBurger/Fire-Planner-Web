@@ -177,7 +177,7 @@ export function CalculatorForm({
                 Withdrawal Strategy
               </Label>
               <p className="text-sm text-foreground">
-                {sellAtRetirement ? "Draw down principal" : "Live off returns only"}
+                {sellAtRetirement ? "Cash out at retirement" : "Live off returns only"}
               </p>
             </div>
             <Switch

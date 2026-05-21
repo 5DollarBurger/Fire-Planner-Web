@@ -312,7 +312,7 @@ export default function DashboardPage() {
                             <div>
                               <p className="text-xs text-muted-foreground">Strategy</p>
                               <p className="text-xs font-serif text-foreground">
-                                {snap.sell_at_retirement ? "4% rule" : "Returns only"}
+                                {snap.sell_at_retirement ? "Cash out" : "Returns only"}
                               </p>
                             </div>
                           </div>
@@ -487,7 +487,7 @@ export default function DashboardPage() {
                         Sell at Retirement
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {liveSellAtRetirement ? "4% withdrawal rule" : "Live on investment returns"}
+                        {liveSellAtRetirement ? "Cash out at retirement" : "Live on investment returns"}
                       </p>
                     </div>
                     <Switch
