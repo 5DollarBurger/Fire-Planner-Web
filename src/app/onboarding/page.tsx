@@ -2,7 +2,9 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/hooks/useAuth"
-import { updateProfile } from "@/lib/api"
+import { computeAgeFromDOB, createSnapshot, updateProfile } from "@/lib/api"
+
+const PENDING_SNAPSHOT_KEY = "fire_pending_snapshot"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -31,6 +33,14 @@ export default function OnboardingPage() {
     setSaving(true)
     try {
       await updateProfile({ date_of_birth: dob }, accessToken)
+      const pending = sessionStorage.getItem(PENDING_SNAPSHOT_KEY)
+      if (pending) {
+        try {
+          const { age, ageElapsed } = computeAgeFromDOB(dob)
+          await createSnapshot({ ...JSON.parse(pending), age, age_elapsed: ageElapsed }, accessToken)
+        } catch { /* don't block navigation if snapshot save fails */ }
+        sessionStorage.removeItem(PENDING_SNAPSHOT_KEY)
+      }
       router.replace("/dashboard")
     } catch {
       setError("Failed to save. Please try again.")
