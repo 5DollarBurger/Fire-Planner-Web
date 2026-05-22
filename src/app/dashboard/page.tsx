@@ -1,5 +1,6 @@
 "use client"
 
+import { FieldTooltip } from "@/components/field-tooltip"
 import { ChartRow, ResultsChart } from "@/components/results-chart"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -363,7 +364,7 @@ export default function DashboardPage() {
               Fire Planner
             </h1>
             <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mt-2">
-              The Journal of Financial Independence
+              Your Journal of Financial Independence
             </p>
           </div>
           <nav className="flex items-center justify-center gap-8 py-3 border-t border-border text-sm">
@@ -563,9 +564,10 @@ export default function DashboardPage() {
 
                 <div className="p-6 space-y-6">
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Annual Income
-                    </Label>
+                    <FieldTooltip
+                      label="Annual Income"
+                      tip="Accessible liquid income net of taxes, mortgage, and pension contributions — money available for savings, investing, and day-to-day expenses."
+                    />
                     <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
                       <Input
                         type="text"
@@ -578,9 +580,10 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Annual Expenses
-                    </Label>
+                    <FieldTooltip
+                      label="Annual Expenses"
+                      tip="Day-to-day quality-of-life expenses excluding taxes, mortgage, pension, and investment contributions. Include short-term debt repayments that are regularly rolled over (e.g. credit card, car loan payments)."
+                    />
                     <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
                       <Input
                         type="text"
@@ -593,9 +596,10 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Cash Holdings
-                    </Label>
+                    <FieldTooltip
+                      label="Cash Holdings"
+                      tip="Liquid cash or equivalents that yield little return. Counts toward emergency funds and immediate liquidity."
+                    />
                     <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
                       <Input
                         type="text"
@@ -608,9 +612,10 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Investment Portfolio
-                    </Label>
+                    <FieldTooltip
+                      label="Investment Portfolio"
+                      tip="Stocks, bonds, and other liquid or semi-liquid assets accessible to fund expenses within a year's notice."
+                    />
                     <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
                       <Input
                         type="text"
