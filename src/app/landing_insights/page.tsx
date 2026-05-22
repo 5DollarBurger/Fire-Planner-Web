@@ -3,6 +3,9 @@
 import { CalculatorForm } from "@/components/calculator-form";
 import { HeroSection } from "@/components/hero-section";
 import { ResultsChart } from "@/components/results-chart";
+import { useAuth } from "@/hooks/useAuth";
+import { computeAgeElapsed, createSnapshot } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import defaultInputs from "@/data/personas/default/inputs.json";
@@ -35,6 +38,9 @@ const initialChartData: ChartRow[] = defaultProjection.age.map((a, i) => ({
 }));
 
 export default function HomePage() {
+  const router = useRouter();
+  const { isAuthenticated, accessToken, loginWithGoogle } = useAuth();
+
   // Calculator state — seeded from the default persona
   const [age, setAge] = useState(defaultInputs.age);
   const [ageElapsed, setAgeElapsed] = useState(defaultInputs.ageElapsed);
@@ -56,6 +62,16 @@ export default function HomePage() {
   const [chartData, setChartData] = useState<ChartRow[]>(initialChartData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Track last computed result so we can save it when the user signs in
+  const lastResultRef = useRef<{
+    retirementAge: number;
+    yearsToRetire: number;
+    monthsToRetire: number;
+    daysToRetire: number;
+    targetFIRE: number;
+    fineProjection: FineProjection;
+  } | null>(null);
 
   // Skip the first useEffect run — initial state already reflects the default persona
   const isFirstRender = useRef(true);
@@ -94,6 +110,8 @@ export default function HomePage() {
         const retirementResult = (await retirementRes.json()) as {
           retirementAge: number;
           yearsToRetire: number;
+          monthsToRetire: number;
+          daysToRetire: number;
           targetFIRE: number;
           fineProjection: FineProjection;
         };
@@ -103,6 +121,7 @@ export default function HomePage() {
         setMonthsToRetire(retirementResult.fineProjection.monthsToRetire);
         setDaysToRetire(retirementResult.fineProjection.daysToRetire);
         setTargetFIRE(retirementResult.fineProjection.targetFIRE);
+        lastResultRef.current = retirementResult;
 
         const proj = retirementResult.fineProjection.liquidAssetDict;
         setChartData(
@@ -122,6 +141,40 @@ export default function HomePage() {
 
     return () => clearTimeout(timer);
   }, [age, cash, investment, investmentReturn, sellAtRetirement, income, expense]);
+
+  const handleHeroSignIn = async (credential: string) => {
+    await loginWithGoogle(credential);
+    router.push("/dashboard");
+  };
+
+  const handleSignInAndSave = async (credential: string) => {
+    const tokens = await loginWithGoogle(credential);
+    const result = lastResultRef.current;
+    if (result && tokens.access) {
+      const proj = result.fineProjection.liquidAssetDict;
+      await createSnapshot(
+        {
+          age,
+          age_elapsed: computeAgeElapsed(),
+          income,
+          expense,
+          assets: [
+            { name: "cash", value: cash, return: 0 },
+            { name: "investment", value: investment, return: investmentReturn / 100 },
+          ],
+          sell_at_retirement: sellAtRetirement,
+          retirement_age: result.retirementAge,
+          years_to_retire: result.fineProjection.yearsToRetire,
+          months_to_retire: result.fineProjection.monthsToRetire,
+          days_to_retire: result.fineProjection.daysToRetire,
+          target_fire: result.fineProjection.targetFIRE,
+          projection: { cash: proj.cash, investment: proj.investment, age: proj.age },
+        },
+        tokens.access,
+      ).catch(console.error);
+    }
+    router.push("/dashboard");
+  };
 
   return (
     <div className="min-h-screen">
@@ -176,7 +229,11 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <HeroSection />
+      <HeroSection
+        isAuthenticated={isAuthenticated}
+        onSignIn={handleHeroSignIn}
+        onGoToDashboard={() => router.push("/dashboard")}
+      />
 
       {/* Calculator Section */}
       <section
@@ -236,6 +293,8 @@ export default function HomePage() {
                 sellAtRetirement={sellAtRetirement}
                 loading={loading}
                 error={error}
+                isAuthenticated={isAuthenticated}
+                onSignInAndSave={handleSignInAndSave}
               />
             </div>
           </div>

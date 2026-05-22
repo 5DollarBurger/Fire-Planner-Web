@@ -14,7 +14,7 @@ Freemium SaaS. Two tiers:
 
 1. User clicks "Sign in with Google" → `@react-oauth/google` returns a Google ID token
 2. POST `/auth/google/` with that token → Django backend verifies with Google, returns `{ access, refresh }` JWT pair
-3. Store tokens in `useAuth` hook state (not localStorage — keep it simple for now)
+3. Store tokens in `useAuth` hook state AND `localStorage` (`fire_auth` key) — deliberate decision to enable returning-user flow across sessions
 4. Send `Authorization: Bearer <access>` on paid-tier API calls
 5. Every request also sends `X-API-Key` header — this gates client-level access (not user-level)
 

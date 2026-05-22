@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
+import { GoogleLogin } from "@react-oauth/google"
 import {
     Bar,
     ComposedChart,
@@ -40,6 +41,8 @@ interface ResultsChartProps {
   overlayData?: { age: number; total: number }[]
   overlayLabel?: string
   overlayRetirementAge?: number | null
+  isAuthenticated?: boolean
+  onSignInAndSave?: (credential: string) => void
 }
 
 export function ResultsChart({
@@ -58,6 +61,8 @@ export function ResultsChart({
   overlayData,
   overlayLabel = "Baseline",
   overlayRetirementAge,
+  isAuthenticated = false,
+  onSignInAndSave,
 }: ResultsChartProps) {
   const presentNetWorth = cashOnHand + investmentPortfolio
 
@@ -307,6 +312,26 @@ export function ResultsChart({
             <span className="text-foreground">{formatCurrencyFull(annualExpenses)}</span> annually
             {sellAtRetirement ? " by cashing out investments at retirement" : " from investment returns alone"}.
           </p>
+        </div>
+      )}
+
+      {/* Save Results CTA — shown to guests once a result is available */}
+      {!isAuthenticated && onSignInAndSave && chartData.length > 0 && (
+        <div className="border border-border bg-card p-8 text-center space-y-4">
+          <p className="font-serif text-xl text-foreground">Track Your Progress</p>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            Save this analysis and see how your FIRE date improves over time.
+          </p>
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={({ credential }) => onSignInAndSave(credential!)}
+              onError={() => {}}
+              text="signin_with"
+              shape="rectangular"
+              size="large"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">Free — takes 10 seconds</p>
         </div>
       )}
     </div>

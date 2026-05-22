@@ -1,8 +1,19 @@
 "use client"
 
-import { ArrowDown } from "lucide-react"
+import { ArrowDown, ArrowRight } from "lucide-react"
+import { GoogleLogin } from "@react-oauth/google"
 
-export function HeroSection() {
+interface HeroSectionProps {
+  isAuthenticated?: boolean
+  onSignIn?: (credential: string) => void
+  onGoToDashboard?: () => void
+}
+
+export function HeroSection({
+  isAuthenticated = false,
+  onSignIn,
+  onGoToDashboard,
+}: HeroSectionProps) {
   const scrollToCalculator = () => {
     document.getElementById("calculator")?.scrollIntoView({ behavior: "smooth" })
   }
@@ -11,7 +22,7 @@ export function HeroSection() {
     <section className="relative min-h-[70vh] flex flex-col items-center justify-center px-4 py-16 md:py-24">
       {/* Decorative top border */}
       <div className="absolute top-0 left-0 right-0 h-px bg-border" />
-      
+
       {/* Masthead style header */}
       <div className="text-center mb-8">
         <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-4">
@@ -26,21 +37,43 @@ export function HeroSection() {
           <br />
           <span className="italic">financial independence?</span>
         </h1>
-        
+
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed font-sans">
-          The definitive calculator for serious investors planning their path to early retirement. 
+          The definitive calculator for serious investors planning their path to early retirement.
           Project your wealth accumulation with institutional-grade precision.
         </p>
 
-        <button
-          onClick={scrollToCalculator}
-          className="group inline-flex items-center gap-3 text-sm tracking-wide uppercase text-foreground hover:text-accent transition-colors"
-        >
-          <span className="border-b border-foreground pb-0.5 group-hover:border-accent">
-            Begin Your Analysis
-          </span>
-          <ArrowDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />
-        </button>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+          <button
+            onClick={scrollToCalculator}
+            className="group inline-flex items-center gap-3 text-sm tracking-wide uppercase text-foreground hover:text-accent transition-colors"
+          >
+            <span className="border-b border-foreground pb-0.5 group-hover:border-accent">
+              Begin Your Analysis
+            </span>
+            <ArrowDown className="w-4 h-4 group-hover:translate-y-1 transition-transform" />
+          </button>
+
+          {isAuthenticated ? (
+            <button
+              onClick={onGoToDashboard}
+              className="group inline-flex items-center gap-3 text-sm tracking-wide uppercase text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span className="border-b border-muted-foreground pb-0.5 group-hover:border-foreground">
+                Dashboard
+              </span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+          ) : onSignIn ? (
+            <GoogleLogin
+              onSuccess={({ credential }) => onSignIn(credential!)}
+              onError={() => {}}
+              text="signin_with"
+              shape="rectangular"
+              size="medium"
+            />
+          ) : null}
+        </div>
       </div>
 
       {/* Decorative elements */}
