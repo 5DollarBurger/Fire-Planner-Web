@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
+import { GoogleLogin } from "@react-oauth/google"
 import {
     Bar,
     ComposedChart,
@@ -40,6 +41,8 @@ interface ResultsChartProps {
   overlayData?: { age: number; total: number }[]
   overlayLabel?: string
   overlayRetirementAge?: number | null
+  isAuthenticated?: boolean
+  onSignInAndSave?: (credential: string) => void
 }
 
 export function ResultsChart({
@@ -58,6 +61,8 @@ export function ResultsChart({
   overlayData,
   overlayLabel = "Baseline",
   overlayRetirementAge,
+  isAuthenticated = false,
+  onSignInAndSave,
 }: ResultsChartProps) {
   const presentNetWorth = cashOnHand + investmentPortfolio
 
@@ -106,7 +111,7 @@ export function ResultsChart({
     return null
   }
 
-  const mergedData = chartData.map((row) => {
+  const mergedData = chartData.slice(0, -1).map((row) => {
     const o = overlayData?.find((d) => d.age === row.age)
     return { ...row, liveTotal: o?.total }
   })
@@ -125,90 +130,97 @@ export function ResultsChart({
             </p>
           ) : null}
         </div>
-        <CardContent className="p-8 text-center">
-          {error ? (
-            <p className="text-destructive">{error}</p>
-          ) : loading && retirementAge === null ? (
-            <p className="text-muted-foreground">Calculating...</p>
-          ) : retirementAge !== null && yearsToRetire !== null ? (
-            <>
-              {yearsToRetire === 0 && !monthsToRetire && !daysToRetire ? (
-                <p className="font-serif text-3xl md:text-4xl text-foreground tracking-tight mb-6">
-                  You have achieved financial independence
-                </p>
-              ) : (
+        <CardContent className="p-8">
+          <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-stretch">
+            {/* Countdown */}
+            <div className="flex-1 text-center">
+              {error ? (
+                <p className="text-destructive">{error}</p>
+              ) : loading && retirementAge === null ? (
+                <p className="text-muted-foreground">Calculating...</p>
+              ) : retirementAge !== null && yearsToRetire !== null ? (
                 <>
-                  <div className="flex items-end justify-center gap-8 md:gap-12 mb-4">
-                    <div className="flex flex-col items-center">
-                      <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
-                        {yearsToRetire}
+                  {yearsToRetire === 0 && !monthsToRetire && !daysToRetire ? (
+                    <p className="font-serif text-3xl md:text-4xl text-foreground tracking-tight">
+                      You have achieved financial independence
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex items-end justify-center gap-8 md:gap-12 mb-4">
+                        <div className="flex flex-col items-center">
+                          <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
+                            {yearsToRetire}
+                          </p>
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
+                            {yearsToRetire === 1 ? "Year" : "Years"}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
+                            {monthsToRetire ?? 0}
+                          </p>
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
+                            {monthsToRetire === 1 ? "Month" : "Months"}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
+                            {daysToRetire ?? 0}
+                          </p>
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
+                            {daysToRetire === 1 ? "Day" : "Days"}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
+                        to Independence
                       </p>
-                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
-                        {yearsToRetire === 1 ? "Year" : "Years"}
+                      <div className="h-px bg-border w-16 mx-auto mb-6" />
+                      <p className="text-lg text-foreground font-serif">
+                        Retire by age {retirementAge}
                       </p>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
-                        {monthsToRetire ?? 0}
-                      </p>
-                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
-                        {monthsToRetire === 1 ? "Month" : "Months"}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <p className="font-serif text-6xl md:text-7xl text-foreground tracking-tight leading-none">
-                        {daysToRetire ?? 0}
-                      </p>
-                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-2">
-                        {daysToRetire === 1 ? "Day" : "Days"}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
-                    to Independence
-                  </p>
-                  <div className="h-px bg-border w-16 mx-auto mb-6" />
-                  <p className="text-lg text-foreground font-serif">
-                    Retire by age {retirementAge}
-                  </p>
+                    </>
+                  )}
                 </>
-              )}
-            </>
-          ) : null}
+              ) : null}
+            </div>
+
+            {/* Vertical divider */}
+            <div className="hidden sm:block w-px bg-border self-stretch" />
+            {/* Horizontal divider (mobile) */}
+            <div className="block sm:hidden h-px bg-border w-full" />
+
+            {/* Stat column */}
+            <div className="flex sm:flex-col gap-6 sm:gap-0 sm:w-44 sm:justify-center">
+              <div className="flex-1 sm:flex-none sm:py-4">
+                <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2">
+                  Target Capital
+                </p>
+                <p className="font-serif text-xl text-foreground">
+                  {targetFIRE === null ? "—" : formatCurrencyFull(Math.round(targetFIRE))}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {sellAtRetirement ? "Cash out at retirement" : "From returns alone"}
+                </p>
+              </div>
+              <div className="hidden sm:block h-px bg-border" />
+              <div className="flex-1 sm:flex-none sm:py-4">
+                <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2">
+                  Present Net Worth
+                </p>
+                <p className="font-serif text-xl text-foreground">
+                  {formatCurrencyFull(presentNetWorth)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {targetFIRE !== null && targetFIRE > 0
+                    ? `${Math.round((presentNetWorth / targetFIRE) * 100)}% of target`
+                    : "Cash and investments combined"}
+                </p>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Key Figures */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="border-border bg-card">
-          <CardContent className="p-6">
-            <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2">
-              Target Capital
-            </p>
-            <p className="font-serif text-2xl text-foreground">
-              {targetFIRE === null ? "—" : formatCurrencyFull(Math.round(targetFIRE))}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              {sellAtRetirement ? "Cash out investments at retirement" : "To sustain living expenses from returns"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card">
-          <CardContent className="p-6">
-            <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-2">
-              Present Net Worth
-            </p>
-            <p className="font-serif text-2xl text-foreground">
-              {formatCurrencyFull(presentNetWorth)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              {targetFIRE !== null && targetFIRE > 0
-                ? `${Math.round((presentNetWorth / targetFIRE) * 100)}% of target`
-                : "Cash and investments combined"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Wealth Projection Chart */}
       {chartData.length > 0 && (
@@ -264,7 +276,7 @@ export function ResultsChart({
                       stroke="var(--muted-foreground)"
                       strokeDasharray="4 4"
                       strokeWidth={1}
-                      label={{ value: "Prev. FIRE", position: "top", fill: "var(--muted-foreground)", fontSize: 10 }}
+                      label={{ value: "Prev. FIRE", position: "top", fill: "var(--muted-foreground)", fontSize: 10, dy: 14 }}
                     />
                   )}
                   {retirementAge !== null && (
@@ -307,6 +319,26 @@ export function ResultsChart({
             <span className="text-foreground">{formatCurrencyFull(annualExpenses)}</span> annually
             {sellAtRetirement ? " by cashing out investments at retirement" : " from investment returns alone"}.
           </p>
+        </div>
+      )}
+
+      {/* Save Results CTA — shown to guests once a result is available */}
+      {!isAuthenticated && onSignInAndSave && chartData.length > 0 && (
+        <div className="border border-border bg-card p-8 text-center space-y-4">
+          <p className="font-serif text-xl text-foreground">Track Your Progress</p>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            Save this analysis and see how your FIRE date improves over time.
+          </p>
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={({ credential }) => onSignInAndSave(credential!)}
+              onError={() => {}}
+              text="signin_with"
+              shape="rectangular"
+              size="large"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">Free — takes 10 seconds</p>
         </div>
       )}
     </div>

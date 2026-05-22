@@ -29,17 +29,95 @@ async function request<T>(
   return response.json()
 }
 
+// Proxy calls go through Next.js route handlers (keeps API_URL and API_KEY server-side)
+async function proxyRequest<T>(path: string, init: RequestInit, token: string): Promise<T> {
+  const res = await fetch(path, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...((init.headers as Record<string, string>) ?? {}),
+    },
+  })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    throw { status: res.status, detail: error }
+  }
+  return res.json()
+}
+
+export interface ApiProfile {
+  date_of_birth: string | null
+}
+
+export interface ApiSnapshot {
+  id: number
+  created_at: string
+  age: number
+  age_elapsed: number
+  income: number
+  expense: number
+  assets: { name: string; value: number; return: number }[]
+  sell_at_retirement: boolean
+  retirement_age: number
+  years_to_retire: number
+  months_to_retire: number
+  days_to_retire: number
+  target_fire: number
+  projection: { cash: number[]; investment: number[]; age: number[] }
+}
+
+export function computeAgeFromDOB(dob: string): { age: number; ageElapsed: number } {
+  const now = new Date()
+  const birth = new Date(dob)
+  const thisYearBirthday = new Date(now.getFullYear(), birth.getMonth(), birth.getDate())
+  const hasBirthdayPassed = now >= thisYearBirthday
+  const age = now.getFullYear() - birth.getFullYear() - (hasBirthdayPassed ? 0 : 1)
+  const lastBirthday = hasBirthdayPassed
+    ? thisYearBirthday
+    : new Date(now.getFullYear() - 1, birth.getMonth(), birth.getDate())
+  const nextBirthday = hasBirthdayPassed
+    ? new Date(now.getFullYear() + 1, birth.getMonth(), birth.getDate())
+    : thisYearBirthday
+  const ageElapsed =
+    (now.getTime() - lastBirthday.getTime()) /
+    (nextBirthday.getTime() - lastBirthday.getTime())
+  return { age, ageElapsed }
+}
+
+export const getProfile = (token: string) =>
+  proxyRequest<ApiProfile>("/api/profile", {}, token)
+
+export const updateProfile = (payload: Partial<ApiProfile>, token: string) =>
+  proxyRequest<ApiProfile>("/api/profile", { method: "PUT", body: JSON.stringify(payload) }, token)
+
+export const listSnapshots = (token: string) =>
+  proxyRequest<ApiSnapshot[]>("/api/snapshots", {}, token)
+
+export const createSnapshot = (payload: object, token: string) =>
+  proxyRequest<ApiSnapshot>("/api/snapshots", { method: "POST", body: JSON.stringify(payload) }, token)
+
 export const api = {
   googleAuth: (googleToken: string) =>
-    request<{ access: string; refresh: string }>("/auth/google/", {
+    fetch("/api/auth/google", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: googleToken }),
+    }).then(async (res) => {
+      const data = await res.json()
+      if (!res.ok) throw { status: res.status, detail: data }
+      return data as { access: string; refresh: string }
     }),
 
   refreshToken: (refresh: string) =>
-    request<{ access: string }>("/token/refresh/", {
+    fetch("/api/auth/refresh", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh }),
+    }).then(async (res) => {
+      const data = await res.json()
+      if (!res.ok) throw { status: res.status, detail: data }
+      return data as { access: string }
     }),
 
   projectLiquidAsset: (payload: object, token?: string) =>

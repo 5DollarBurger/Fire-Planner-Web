@@ -6,9 +6,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { MOCK_SNAPSHOTS } from "@/data/mock-snapshots"
+import { useAuth } from "@/hooks/useAuth"
+import { ApiProfile, ApiSnapshot, computeAgeFromDOB, createSnapshot, getProfile, listSnapshots } from "@/lib/api"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
+
+import defaultInputs from "@/data/personas/default/inputs.json"
+import defaultRetirement from "@/data/personas/default/retirement-age.json"
 
 type FineProjection = {
   yearsToRetire: number
@@ -30,8 +35,54 @@ type SnapshotResult = {
   fineProjection: FineProjection
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
+function buildDefaultResult(): SnapshotResult {
+  const fp = defaultRetirement.fineProjection
+  const lad = fp.liquidAssetDict
+  return {
+    retirementAge: defaultRetirement.retirementAge,
+    yearsToRetire: fp.yearsToRetire,
+    targetFIRE: fp.targetFIRE,
+    fineProjection: {
+      yearsToRetire: fp.yearsToRetire,
+      monthsToRetire: fp.monthsToRetire,
+      daysToRetire: fp.daysToRetire,
+      targetFIRE: fp.targetFIRE,
+      liquidAssetDict: {
+        cash: lad.cash,
+        investment: lad.investment,
+        total: lad.cash.map((c, i) => c + lad.investment[i]),
+        age: lad.age,
+      },
+    },
+  }
+}
+
+const DEFAULT_CASH = defaultInputs.assetList.find((a) => a.name === "cash")
+const DEFAULT_INV = defaultInputs.assetList.find((a) => a.name === "investment")
+
+function toSnapshotResult(snap: ApiSnapshot): SnapshotResult {
+  const total = snap.projection.cash.map((c, i) => c + snap.projection.investment[i])
+  return {
+    retirementAge: snap.retirement_age,
+    yearsToRetire: snap.years_to_retire,
+    targetFIRE: snap.target_fire,
+    fineProjection: {
+      yearsToRetire: snap.years_to_retire,
+      monthsToRetire: snap.months_to_retire,
+      daysToRetire: snap.days_to_retire,
+      targetFIRE: snap.target_fire,
+      liquidAssetDict: {
+        cash: snap.projection.cash,
+        investment: snap.projection.investment,
+        total,
+        age: snap.projection.age,
+      },
+    },
+  }
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -82,74 +133,90 @@ function Stepper({ value, onChange }: { value: number; onChange: (v: number) => 
   )
 }
 
-const latestSnap = MOCK_SNAPSHOTS[MOCK_SNAPSHOTS.length - 1]
-const latestCashAsset = latestSnap.assets.find((a) => a.name === "cash")
-const latestInvAsset = latestSnap.assets.find((a) => a.name === "investment")
-
 export default function DashboardPage() {
-  // ── Snapshot selection (baseline for dashed overlay) ───────────────────
-  const [selectedIndex, setSelectedIndex] = useState(MOCK_SNAPSHOTS.length - 1)
-  const [results, setResults] = useState<(SnapshotResult | null)[]>(
-    MOCK_SNAPSHOTS.map(() => null)
-  )
-  const [loadingStates, setLoadingStates] = useState<boolean[]>(
-    MOCK_SNAPSHOTS.map(() => true)
-  )
+  const router = useRouter()
+  const { isAuthenticated, accessToken, logout } = useAuth()
+
+  // ── Auth guard ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isAuthenticated === false) {
+      // isAuthenticated starts false on first render (SSR), wait for hydration
+      const timer = setTimeout(() => {
+        if (!isAuthenticated) router.replace("/landing_insights")
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [isAuthenticated, router])
+
+  // ── Profile + snapshot data ────────────────────────────────────────────
+  const [profile, setProfile] = useState<ApiProfile | null>(null)
+  const [snapshots, setSnapshots] = useState<ApiSnapshot[]>([])
+  const [snapshotsLoading, setSnapshotsLoading] = useState(true)
 
   useEffect(() => {
-    MOCK_SNAPSHOTS.forEach(async (snap, i) => {
-      try {
-        const res = await fetch("/api/retirement-age", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            age: snap.age,
-            ageElapsed: snap.ageElapsed,
-            income: snap.income,
-            expense: snap.expense,
-            sellInvestmentAtRetirement: snap.sell_at_retirement,
-            assetList: snap.assets,
-          }),
-        })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const data = (await res.json()) as SnapshotResult
-        setResults((prev) => {
-          const next = [...prev]
-          next[i] = data
-          return next
-        })
-      } catch {
-        // result stays null
-      } finally {
-        setLoadingStates((prev) => {
-          const next = [...prev]
-          next[i] = false
-          return next
-        })
-      }
-    })
-  }, [])
+    if (!accessToken) return
+    Promise.all([
+      getProfile(accessToken).then(setProfile).catch(console.error),
+      listSnapshots(accessToken).then(setSnapshots).catch(console.error),
+    ]).finally(() => setSnapshotsLoading(false))
+  }, [accessToken])
 
-  const selected = MOCK_SNAPSHOTS[selectedIndex]
-  const selectedResult = results[selectedIndex]
-  const cashAsset = selected.assets.find((a) => a.name === "cash")
-  const investmentAsset = selected.assets.find((a) => a.name === "investment")
+  // ── Snapshot selection ─────────────────────────────────────────────────
+  const [selectedIndex, setSelectedIndex] = useState(0)
 
-  // ── Live calculator — defaults to latest snapshot, fixed age ──────────
-  const [liveIncome, setLiveIncome] = useState(latestSnap.income)
-  const [liveExpense, setLiveExpense] = useState(latestSnap.expense)
-  const [liveCash, setLiveCash] = useState(latestCashAsset?.value ?? 0)
-  const [liveInvestment, setLiveInvestment] = useState(latestInvAsset?.value ?? 0)
-  const [liveReturn, setLiveReturn] = useState(
-    Math.round((latestInvAsset?.return ?? 0.07) * 100 * 10) / 10
-  )
-  const [liveSellAtRetirement, setLiveSellAtRetirement] = useState(latestSnap.sell_at_retirement)
+  const selected = snapshots[selectedIndex]
+  const selectedResult = selected ? toSnapshotResult(selected) : null
+  const cashAsset = selected?.assets.find((a) => a.name === "cash")
+  const investmentAsset = selected?.assets.find((a) => a.name === "investment")
+
+  // Latest snapshot drives the live calculator age
+  const latestSnap = snapshots[0]
+
+  // ── Live calculator defaults ───────────────────────────────────────────
+  const [liveIncome, setLiveIncome] = useState(0)
+  const [liveExpense, setLiveExpense] = useState(0)
+  const [liveCash, setLiveCash] = useState(0)
+  const [liveInvestment, setLiveInvestment] = useState(0)
+  const [liveReturn, setLiveReturn] = useState(7)
+  const [liveSellAtRetirement, setLiveSellAtRetirement] = useState(true)
   const [liveResult, setLiveResult] = useState<SnapshotResult | null>(null)
-  const [liveLoading, setLiveLoading] = useState(true)
+  const [liveLoading, setLiveLoading] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // Seed live inputs when snapshots load or selected snapshot changes
+  useEffect(() => {
+    if (!snapshotsLoading && !latestSnap) {
+      setLiveIncome(defaultInputs.income)
+      setLiveExpense(defaultInputs.expense)
+      setLiveCash(DEFAULT_CASH?.value ?? 30000)
+      setLiveInvestment(DEFAULT_INV?.value ?? 50000)
+      setLiveReturn(Math.round((DEFAULT_INV?.return ?? 0.07) * 100 * 10) / 10)
+      setLiveSellAtRetirement(defaultInputs.sellInvestmentAtRetirement)
+      setLiveResult(buildDefaultResult())
+      return
+    }
+    if (!latestSnap) return
+    const cash = latestSnap.assets.find((a) => a.name === "cash")
+    const inv = latestSnap.assets.find((a) => a.name === "investment")
+    setLiveIncome(latestSnap.income)
+    setLiveExpense(latestSnap.expense)
+    setLiveCash(cash?.value ?? 0)
+    setLiveInvestment(inv?.value ?? 0)
+    setLiveReturn(Math.round((inv?.return ?? 0.07) * 100 * 10) / 10)
+    setLiveSellAtRetirement(latestSnap.sell_at_retirement)
+    setLiveResult(null)
+    setSaved(false)
+  }, [latestSnap, snapshotsLoading])
+
+  // ── Debounced live fetch ───────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    const ageInfo = profile?.date_of_birth
+      ? computeAgeFromDOB(profile.date_of_birth)
+      : latestSnap
+        ? { age: latestSnap.age, ageElapsed: latestSnap.age_elapsed }
+        : null
+    if (!ageInfo) return
     setSaved(false)
     setLiveLoading(true)
     const timer = setTimeout(async () => {
@@ -158,8 +225,8 @@ export default function DashboardPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            age: latestSnap.age,
-            ageElapsed: latestSnap.ageElapsed,
+            age: ageInfo.age,
+            ageElapsed: ageInfo.ageElapsed,
             income: liveIncome,
             expense: liveExpense,
             sellInvestmentAtRetirement: liveSellAtRetirement,
@@ -175,10 +242,9 @@ export default function DashboardPage() {
       }
     }, 1000)
     return () => clearTimeout(timer)
-  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])
+  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement, latestSnap, profile])
 
   // ── Derived chart data ─────────────────────────────────────────────────
-  // Bars = live scenario
   const liveChartData: ChartRow[] = liveResult
     ? liveResult.fineProjection.liquidAssetDict.age.map((a, i) => ({
         age: a,
@@ -187,7 +253,6 @@ export default function DashboardPage() {
       }))
     : []
 
-  // Dashed line = selected snapshot total
   const baselineOverlay = selectedResult
     ? selectedResult.fineProjection.liquidAssetDict.age.map((a, i) => ({
         age: a,
@@ -197,21 +262,85 @@ export default function DashboardPage() {
       }))
     : undefined
 
-  const isModified =
-    liveIncome !== latestSnap.income ||
-    liveExpense !== latestSnap.expense ||
-    liveCash !== (latestCashAsset?.value ?? 0) ||
-    liveInvestment !== (latestInvAsset?.value ?? 0) ||
-    Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001 ||
-    liveSellAtRetirement !== latestSnap.sell_at_retirement
+  const latestCashAsset = latestSnap?.assets.find((a) => a.name === "cash")
+  const latestInvAsset = latestSnap?.assets.find((a) => a.name === "investment")
+
+  const isModified = !latestSnap
+    ? liveResult !== null
+    : liveIncome !== latestSnap.income ||
+      liveExpense !== latestSnap.expense ||
+      liveCash !== (latestCashAsset?.value ?? 0) ||
+      liveInvestment !== (latestInvAsset?.value ?? 0) ||
+      Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001 ||
+      liveSellAtRetirement !== latestSnap.sell_at_retirement
 
   const ageDelta =
     liveResult && selectedResult
       ? selectedResult.retirementAge - liveResult.retirementAge
       : null
 
+  // ── Save Analysis ──────────────────────────────────────────────────────
+  const handleSave = useCallback(async () => {
+    if (!isModified || !accessToken || !liveResult) return
+    const { age: dobAge, ageElapsed } = profile?.date_of_birth
+      ? computeAgeFromDOB(profile.date_of_birth)
+      : latestSnap
+        ? { age: latestSnap.age, ageElapsed: latestSnap.age_elapsed }
+        : { age: 0, ageElapsed: 0 }
+    const proj = liveResult.fineProjection.liquidAssetDict
+    try {
+      const snap = await createSnapshot(
+        {
+          age: dobAge,
+          age_elapsed: ageElapsed,
+          income: liveIncome,
+          expense: liveExpense,
+          assets: [
+            { name: "cash", value: liveCash, return: 0 },
+            { name: "investment", value: liveInvestment, return: liveReturn / 100 },
+          ],
+          sell_at_retirement: liveSellAtRetirement,
+          retirement_age: liveResult.retirementAge,
+          years_to_retire: liveResult.fineProjection.yearsToRetire,
+          months_to_retire: liveResult.fineProjection.monthsToRetire,
+          days_to_retire: liveResult.fineProjection.daysToRetire,
+          target_fire: liveResult.fineProjection.targetFIRE,
+          projection: { cash: proj.cash, investment: proj.investment, age: proj.age },
+        },
+        accessToken,
+      )
+      setSnapshots((prev) => {
+        const idx = prev.findIndex((s) => s.id === snap.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = snap
+          return next
+        }
+        return [snap, ...prev]
+      })
+      setSelectedIndex(0)
+      setSaved(true)
+    } catch (err) {
+      console.error("Save failed:", err)
+    }
+  }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])  // latestSnap kept for age fallback
+
+  const handleSignOut = () => {
+    logout()
+    router.replace("/landing_insights")
+  }
+
   const inputClass =
     "flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
+
+  // ── Empty / loading states ─────────────────────────────────────────────
+  if (snapshotsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">Loading your snapshots…</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen">
@@ -246,7 +375,12 @@ export default function DashboardPage() {
             <span className="text-border">|</span>
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Research</a>
             <span className="text-border">|</span>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">About</a>
+            <button
+              onClick={handleSignOut}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign Out
+            </button>
           </nav>
         </div>
       </header>
@@ -271,10 +405,14 @@ export default function DashboardPage() {
               </h3>
               <div className="flex-1 h-px bg-border" />
             </div>
+            {snapshots.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No snapshots yet. Use the calculator below and click Save Analysis.
+              </p>
+            ) : null}
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-              {MOCK_SNAPSHOTS.map((snap, i) => {
-                const result = results[i]
-                const loading = loadingStates[i]
+              {snapshots.map((snap, i) => {
+                const result = toSnapshotResult(snap)
                 const netWorth = snap.assets.reduce((sum, a) => sum + a.value, 0)
                 const isSelected = i === selectedIndex
                 const snapCash = snap.assets.find((a) => a.name === "cash")
@@ -292,7 +430,7 @@ export default function DashboardPage() {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
                           <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                            {formatDate(snap.created_date)}
+                            {formatDate(snap.created_at)}
                           </p>
                           {isSelected && <span className="text-xs text-foreground">●</span>}
                         </div>
@@ -301,15 +439,9 @@ export default function DashboardPage() {
                         </p>
                         <p className="text-xs text-muted-foreground mb-3">Net worth</p>
                         <div className="h-px bg-border mb-3" />
-                        {loading ? (
-                          <p className="text-xs text-muted-foreground">Calculating…</p>
-                        ) : result ? (
-                          <p className="text-sm text-foreground font-serif">
-                            Retire at age {result.retirementAge}
-                          </p>
-                        ) : (
-                          <p className="text-xs text-destructive">Unavailable</p>
-                        )}
+                        <p className="text-sm text-foreground font-serif">
+                          Retire at age {result.retirementAge}
+                        </p>
                         <div className="overflow-hidden max-h-0 group-hover:max-h-48 transition-all duration-200 ease-in-out">
                           <div className="h-px bg-border mt-3 mb-3" />
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -355,7 +487,7 @@ export default function DashboardPage() {
           {isModified && liveResult && selectedResult && (
             <div className="mb-8 border border-border bg-secondary/30 p-6">
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-5">
-                Live vs Baseline — {formatDate(selected.created_date)}
+                Live vs Baseline — {selected && formatDate(selected.created_at)}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div>
@@ -412,7 +544,7 @@ export default function DashboardPage() {
           {/* ── Analysis header — full width ─────────────────────────── */}
           <div className="mb-8 flex items-center gap-4">
             <h3 className="font-serif text-lg text-foreground whitespace-nowrap">
-              Analysis — {formatDate(selected.created_date)}
+              {selected ? `Analysis — ${formatDate(selected.created_at)}` : "Analysis"}
             </h3>
             <div className="flex-1 h-px bg-border" />
           </div>
@@ -420,10 +552,10 @@ export default function DashboardPage() {
           {/* ── Two-column: calculator | results (tops aligned) ─────── */}
           <div className="grid gap-12 lg:grid-cols-[380px_1fr] items-start">
             {/* Left: sticky calculator panel */}
-            <Card className="sticky top-24 border-border bg-card">
+            <Card className="lg:sticky lg:top-24 border-border bg-card">
               <CardContent className="p-0">
                 <div className="border-b border-border px-6 py-4 flex items-center justify-between gap-4">
-                  <h2 className="font-serif text-xl text-foreground">What-If Calculator</h2>
+                  <h2 className="font-serif text-xl text-foreground">Your Financial Position</h2>
                   {liveLoading && (
                     <span className="text-xs text-muted-foreground">Calculating…</span>
                   )}
@@ -529,15 +661,15 @@ export default function DashboardPage() {
                   <div className="h-px bg-border" />
 
                   <button
-                    onClick={() => setSaved(true)}
-                    disabled={saved}
+                    onClick={handleSave}
+                    disabled={!isModified || saved}
                     className="w-full text-sm border border-border px-4 py-2.5 hover:border-foreground transition-colors disabled:opacity-50"
                   >
                     {saved ? "Saved ✓" : "Save Analysis"}
                   </button>
 
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Age is fixed to your latest snapshot.
+                    Age is fixed to your date of birth.
                   </p>
                 </div>
               </CardContent>

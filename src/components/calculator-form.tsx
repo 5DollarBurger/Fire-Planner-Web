@@ -83,7 +83,7 @@ export function CalculatorForm({
     : 0
 
   return (
-    <Card className="sticky top-24 border-border bg-card">
+    <Card className="lg:sticky lg:top-24 border-border bg-card">
       <CardContent className="p-0">
         {/* Header */}
         <div className="border-b border-border px-6 py-4">
@@ -106,6 +106,53 @@ export function CalculatorForm({
               max={100}
               className="font-serif text-lg border-0 border-b border-border rounded-none bg-transparent px-0 focus-visible:ring-0 focus-visible:border-foreground"
             />
+          </div>
+
+          {/* Annual Income */}
+          <div className="space-y-2">
+            <Label htmlFor="income" className="text-xs uppercase tracking-wider text-muted-foreground">
+              Annual Income
+            </Label>
+            <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+              <Input
+                id="income"
+                type="text"
+                value={formatCurrency(annualIncome)}
+                onChange={(e) => setAnnualIncome(parseCurrency(e.target.value))}
+                className="flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
+              />
+              <Stepper value={annualIncome} onChange={setAnnualIncome} />
+            </div>
+          </div>
+
+          {/* Annual Expenses */}
+          <div className="space-y-2">
+            <Label htmlFor="expenses" className="text-xs uppercase tracking-wider text-muted-foreground">
+              Annual Expenses
+            </Label>
+            <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
+              <Input
+                id="expenses"
+                type="text"
+                value={formatCurrency(annualExpenses)}
+                onChange={(e) => setAnnualExpenses(parseCurrency(e.target.value))}
+                className="flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
+              />
+              <Stepper value={annualExpenses} onChange={setAnnualExpenses} />
+            </div>
+          </div>
+
+          {/* Savings Rate */}
+          <div className="border border-border p-4 bg-secondary/30">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground">Savings Rate</span>
+              <span className="font-serif text-2xl text-foreground">
+                {savingsRate}%
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              {savingsRate >= 50 ? "Exceptional" : savingsRate >= 30 ? "Strong" : savingsRate >= 15 ? "Moderate" : "Consider reducing expenses"}
+            </p>
           </div>
 
           {/* Cash on Hand */}
@@ -162,13 +209,9 @@ export function CalculatorForm({
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>0%</span>
-              {/* <span>Historic avg: 7%</span> */}
               <span>20%</span>
             </div>
           </div>
-
-          {/* Divider */}
-          <div className="h-px bg-border" />
 
           {/* Sell at Retirement Toggle */}
           <div className="flex items-start justify-between gap-4">
@@ -185,56 +228,6 @@ export function CalculatorForm({
               checked={sellAtRetirement}
               onCheckedChange={setSellAtRetirement}
             />
-          </div>
-
-          {/* Divider */}
-          <div className="h-px bg-border" />
-
-          {/* Annual Income */}
-          <div className="space-y-2">
-            <Label htmlFor="income" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Annual Income
-            </Label>
-            <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
-              <Input
-                id="income"
-                type="text"
-                value={formatCurrency(annualIncome)}
-                onChange={(e) => setAnnualIncome(parseCurrency(e.target.value))}
-                className="flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
-              />
-              <Stepper value={annualIncome} onChange={setAnnualIncome} />
-            </div>
-          </div>
-
-          {/* Annual Expenses */}
-          <div className="space-y-2">
-            <Label htmlFor="expenses" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Annual Expenses
-            </Label>
-            <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
-              <Input
-                id="expenses"
-                type="text"
-                value={formatCurrency(annualExpenses)}
-                onChange={(e) => setAnnualExpenses(parseCurrency(e.target.value))}
-                className="flex-1 font-serif text-lg border-0 rounded-none bg-transparent px-0 focus-visible:ring-0"
-              />
-              <Stepper value={annualExpenses} onChange={setAnnualExpenses} />
-            </div>
-          </div>
-
-          {/* Savings Rate */}
-          <div className="border border-border p-4 bg-secondary/30">
-            <div className="flex items-baseline justify-between">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">Savings Rate</span>
-              <span className="font-serif text-2xl text-foreground">
-                {savingsRate}%
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {savingsRate >= 50 ? "Exceptional" : savingsRate >= 30 ? "Strong" : savingsRate >= 15 ? "Moderate" : "Consider reducing expenses"}
-            </p>
           </div>
         </div>
       </CardContent>
