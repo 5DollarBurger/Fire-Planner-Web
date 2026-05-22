@@ -266,10 +266,9 @@ export default function HomePage() {
           </div>
 
           {/* Two Column Layout */}
-          <div className="grid gap-12 lg:grid-cols-[380px_1fr]">
+          <div className="grid gap-12 lg:grid-cols-[380px_1fr] items-start">
             {/* Left: Sticky Form */}
-            <div className="lg:self-start">
-              <CalculatorForm
+            <CalculatorForm
                 age={age}
                 setAge={setAge}
                 cashOnHand={cash}
@@ -285,7 +284,6 @@ export default function HomePage() {
                 annualExpenses={expense}
                 setAnnualExpenses={setExpense}
               />
-            </div>
 
             {/* Right: Results */}
             <div>

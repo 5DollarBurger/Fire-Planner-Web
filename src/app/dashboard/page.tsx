@@ -552,7 +552,7 @@ export default function DashboardPage() {
           {/* ── Two-column: calculator | results (tops aligned) ─────── */}
           <div className="grid gap-12 lg:grid-cols-[380px_1fr] items-start">
             {/* Left: sticky calculator panel */}
-            <Card className="sticky top-24 border-border bg-card">
+            <Card className="lg:sticky lg:top-24 border-border bg-card">
               <CardContent className="p-0">
                 <div className="border-b border-border px-6 py-4 flex items-center justify-between gap-4">
                   <h2 className="font-serif text-xl text-foreground">Your Financial Position</h2>

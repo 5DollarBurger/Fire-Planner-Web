@@ -83,7 +83,7 @@ export function CalculatorForm({
     : 0
 
   return (
-    <Card className="sticky top-24 border-border bg-card">
+    <Card className="lg:sticky lg:top-24 border-border bg-card">
       <CardContent className="p-0">
         {/* Header */}
         <div className="border-b border-border px-6 py-4">
