@@ -12,6 +12,9 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 
+import defaultInputs from "@/data/personas/default/inputs.json"
+import defaultRetirement from "@/data/personas/default/retirement-age.json"
+
 type FineProjection = {
   yearsToRetire: number
   monthsToRetire: number
@@ -31,6 +34,31 @@ type SnapshotResult = {
   targetFIRE: number
   fineProjection: FineProjection
 }
+
+function buildDefaultResult(): SnapshotResult {
+  const fp = defaultRetirement.fineProjection
+  const lad = fp.liquidAssetDict
+  return {
+    retirementAge: defaultRetirement.retirementAge,
+    yearsToRetire: fp.yearsToRetire,
+    targetFIRE: fp.targetFIRE,
+    fineProjection: {
+      yearsToRetire: fp.yearsToRetire,
+      monthsToRetire: fp.monthsToRetire,
+      daysToRetire: fp.daysToRetire,
+      targetFIRE: fp.targetFIRE,
+      liquidAssetDict: {
+        cash: lad.cash,
+        investment: lad.investment,
+        total: lad.cash.map((c, i) => c + lad.investment[i]),
+        age: lad.age,
+      },
+    },
+  }
+}
+
+const DEFAULT_CASH = defaultInputs.assetList.find((a) => a.name === "cash")
+const DEFAULT_INV = defaultInputs.assetList.find((a) => a.name === "investment")
 
 function toSnapshotResult(snap: ApiSnapshot): SnapshotResult {
   const total = snap.projection.cash.map((c, i) => c + snap.projection.investment[i])
@@ -157,6 +185,16 @@ export default function DashboardPage() {
 
   // Seed live inputs when snapshots load or selected snapshot changes
   useEffect(() => {
+    if (!snapshotsLoading && !latestSnap) {
+      setLiveIncome(defaultInputs.income)
+      setLiveExpense(defaultInputs.expense)
+      setLiveCash(DEFAULT_CASH?.value ?? 30000)
+      setLiveInvestment(DEFAULT_INV?.value ?? 50000)
+      setLiveReturn(Math.round((DEFAULT_INV?.return ?? 0.07) * 100 * 10) / 10)
+      setLiveSellAtRetirement(defaultInputs.sellInvestmentAtRetirement)
+      setLiveResult(buildDefaultResult())
+      return
+    }
     if (!latestSnap) return
     const cash = latestSnap.assets.find((a) => a.name === "cash")
     const inv = latestSnap.assets.find((a) => a.name === "investment")
@@ -168,12 +206,17 @@ export default function DashboardPage() {
     setLiveSellAtRetirement(latestSnap.sell_at_retirement)
     setLiveResult(null)
     setSaved(false)
-  }, [latestSnap])
+  }, [latestSnap, snapshotsLoading])
 
   // ── Debounced live fetch ───────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (!latestSnap) return
+    const ageInfo = profile?.date_of_birth
+      ? computeAgeFromDOB(profile.date_of_birth)
+      : latestSnap
+        ? { age: latestSnap.age, ageElapsed: latestSnap.age_elapsed }
+        : null
+    if (!ageInfo) return
     setSaved(false)
     setLiveLoading(true)
     const timer = setTimeout(async () => {
@@ -182,8 +225,8 @@ export default function DashboardPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            age: latestSnap.age,
-            ageElapsed: latestSnap.age_elapsed,
+            age: ageInfo.age,
+            ageElapsed: ageInfo.ageElapsed,
             income: liveIncome,
             expense: liveExpense,
             sellInvestmentAtRetirement: liveSellAtRetirement,
@@ -199,7 +242,7 @@ export default function DashboardPage() {
       }
     }, 1000)
     return () => clearTimeout(timer)
-  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement, latestSnap])
+  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement, latestSnap, profile])
 
   // ── Derived chart data ─────────────────────────────────────────────────
   const liveChartData: ChartRow[] = liveResult
@@ -222,14 +265,14 @@ export default function DashboardPage() {
   const latestCashAsset = latestSnap?.assets.find((a) => a.name === "cash")
   const latestInvAsset = latestSnap?.assets.find((a) => a.name === "investment")
 
-  const isModified = latestSnap
-    ? liveIncome !== latestSnap.income ||
+  const isModified = !latestSnap
+    ? liveResult !== null
+    : liveIncome !== latestSnap.income ||
       liveExpense !== latestSnap.expense ||
       liveCash !== (latestCashAsset?.value ?? 0) ||
       liveInvestment !== (latestInvAsset?.value ?? 0) ||
       Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001 ||
       liveSellAtRetirement !== latestSnap.sell_at_retirement
-    : false
 
   const ageDelta =
     liveResult && selectedResult
@@ -238,10 +281,12 @@ export default function DashboardPage() {
 
   // ── Save Analysis ──────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    if (!isModified || !accessToken || !liveResult || !latestSnap) return
+    if (!isModified || !accessToken || !liveResult) return
     const { age: dobAge, ageElapsed } = profile?.date_of_birth
       ? computeAgeFromDOB(profile.date_of_birth)
-      : { age: latestSnap.age, ageElapsed: latestSnap.age_elapsed }
+      : latestSnap
+        ? { age: latestSnap.age, ageElapsed: latestSnap.age_elapsed }
+        : { age: 0, ageElapsed: 0 }
     const proj = liveResult.fineProjection.liquidAssetDict
     try {
       const snap = await createSnapshot(
@@ -264,13 +309,21 @@ export default function DashboardPage() {
         },
         accessToken,
       )
-      setSnapshots((prev) => [snap, ...prev])
+      setSnapshots((prev) => {
+        const idx = prev.findIndex((s) => s.id === snap.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = snap
+          return next
+        }
+        return [snap, ...prev]
+      })
       setSelectedIndex(0)
       setSaved(true)
     } catch (err) {
       console.error("Save failed:", err)
     }
-  }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])
+  }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])  // latestSnap kept for age fallback
 
   const handleSignOut = () => {
     logout()
@@ -285,21 +338,6 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground text-sm">Loading your snapshots…</p>
-      </div>
-    )
-  }
-
-  if (snapshots.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="font-serif text-2xl text-foreground">No snapshots yet</p>
-        <p className="text-sm text-muted-foreground">Run the calculator and save your first analysis.</p>
-        <button
-          onClick={() => router.push("/landing_insights")}
-          className="text-sm border border-border px-4 py-2 hover:border-foreground transition-colors"
-        >
-          Go to Calculator
-        </button>
       </div>
     )
   }
@@ -367,6 +405,11 @@ export default function DashboardPage() {
               </h3>
               <div className="flex-1 h-px bg-border" />
             </div>
+            {snapshots.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No snapshots yet. Use the calculator below and click Save Analysis.
+              </p>
+            ) : null}
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               {snapshots.map((snap, i) => {
                 const result = toSnapshotResult(snap)
