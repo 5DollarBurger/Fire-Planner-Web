@@ -11,6 +11,8 @@ import { useEffect, useRef, useState } from "react";
 import defaultInputs from "@/data/personas/default/inputs.json";
 import defaultRetirement from "@/data/personas/default/retirement-age.json";
 
+const PENDING_SNAPSHOT_KEY = "fire_pending_snapshot"
+
 type ChartRow = { age: number; cash: number; investment: number };
 
 type FineProjection = {
@@ -142,9 +144,34 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [age, cash, investment, investmentReturn, sellAtRetirement, income, expense]);
 
+  const storePendingSnapshot = () => {
+    const result = lastResultRef.current
+    if (!result) return
+    const proj = result.fineProjection.liquidAssetDict
+    sessionStorage.setItem(
+      PENDING_SNAPSHOT_KEY,
+      JSON.stringify({
+        income,
+        expense,
+        assets: [
+          { name: "cash", value: cash, return: 0 },
+          { name: "investment", value: investment, return: investmentReturn / 100 },
+        ],
+        sell_at_retirement: sellAtRetirement,
+        retirement_age: result.retirementAge,
+        years_to_retire: result.fineProjection.yearsToRetire,
+        months_to_retire: result.fineProjection.monthsToRetire,
+        days_to_retire: result.fineProjection.daysToRetire,
+        target_fire: result.fineProjection.targetFIRE,
+        projection: { cash: proj.cash, investment: proj.investment, age: proj.age },
+      }),
+    )
+  }
+
   const handleHeroSignIn = async (credential: string) => {
     const tokens = await loginWithGoogle(credential);
     const profile = await getProfile(tokens.access).catch(() => null);
+    if (!profile?.date_of_birth) storePendingSnapshot()
     router.push(profile?.date_of_birth ? "/dashboard" : "/onboarding");
   };
 
@@ -153,6 +180,7 @@ export default function HomePage() {
     const profile = await getProfile(tokens.access).catch(() => null);
 
     if (!profile?.date_of_birth) {
+      storePendingSnapshot()
       router.push("/onboarding");
       return;
     }
