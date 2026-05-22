@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { ApiSnapshot, ApiProfile, computeAgeFromDOB, createSnapshot, getProfile, listSnapshots } from "@/lib/api"
 import { useAuth } from "@/hooks/useAuth"
+import { ApiProfile, ApiSnapshot, computeAgeFromDOB, createSnapshot, getProfile, listSnapshots } from "@/lib/api"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
@@ -555,7 +555,7 @@ export default function DashboardPage() {
             <Card className="sticky top-24 border-border bg-card">
               <CardContent className="p-0">
                 <div className="border-b border-border px-6 py-4 flex items-center justify-between gap-4">
-                  <h2 className="font-serif text-xl text-foreground">What-If Calculator</h2>
+                  <h2 className="font-serif text-xl text-foreground">Your Financial Position</h2>
                   {liveLoading && (
                     <span className="text-xs text-muted-foreground">Calculating…</span>
                   )}
@@ -669,7 +669,7 @@ export default function DashboardPage() {
                   </button>
 
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Age is fixed to your latest snapshot.
+                    Age is fixed to your date of birth.
                   </p>
                 </div>
               </CardContent>
