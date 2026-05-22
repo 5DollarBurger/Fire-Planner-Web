@@ -111,7 +111,7 @@ export function ResultsChart({
     return null
   }
 
-  const mergedData = chartData.map((row) => {
+  const mergedData = chartData.slice(0, -1).map((row) => {
     const o = overlayData?.find((d) => d.age === row.age)
     return { ...row, liveTotal: o?.total }
   })
@@ -276,7 +276,7 @@ export function ResultsChart({
                       stroke="var(--muted-foreground)"
                       strokeDasharray="4 4"
                       strokeWidth={1}
-                      label={{ value: "Prev. FIRE", position: "top", fill: "var(--muted-foreground)", fontSize: 10 }}
+                      label={{ value: "Prev. FIRE", position: "top", fill: "var(--muted-foreground)", fontSize: 10, dy: 14 }}
                     />
                   )}
                   {retirementAge !== null && (
