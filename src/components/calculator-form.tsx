@@ -1,5 +1,6 @@
 "use client"
 
+import { FieldTooltip } from "@/components/field-tooltip"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -110,9 +111,11 @@ export function CalculatorForm({
 
           {/* Annual Income */}
           <div className="space-y-2">
-            <Label htmlFor="income" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Annual Income
-            </Label>
+            <FieldTooltip
+              htmlFor="income"
+              label="Annual Income"
+              tip="Accessible liquid income net of taxes, mortgage, and pension contributions — money available for savings, investing, and day-to-day expenses."
+            />
             <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
               <Input
                 id="income"
@@ -127,9 +130,11 @@ export function CalculatorForm({
 
           {/* Annual Expenses */}
           <div className="space-y-2">
-            <Label htmlFor="expenses" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Annual Expenses
-            </Label>
+            <FieldTooltip
+              htmlFor="expenses"
+              label="Annual Expenses"
+              tip="Day-to-day quality-of-life expenses excluding taxes, mortgage, pension, and investment contributions. Include short-term debt repayments that are regularly rolled over (e.g. credit card, car loan payments)."
+            />
             <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
               <Input
                 id="expenses"
@@ -157,9 +162,11 @@ export function CalculatorForm({
 
           {/* Cash on Hand */}
           <div className="space-y-2">
-            <Label htmlFor="cash" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Cash Holdings
-            </Label>
+            <FieldTooltip
+              htmlFor="cash"
+              label="Cash Holdings"
+              tip="Liquid cash or equivalents that yield little return. Counts toward emergency funds and immediate liquidity."
+            />
             <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
               <Input
                 id="cash"
@@ -174,9 +181,11 @@ export function CalculatorForm({
 
           {/* Investment Portfolio */}
           <div className="space-y-2">
-            <Label htmlFor="portfolio" className="text-xs uppercase tracking-wider text-muted-foreground">
-              Investment Portfolio
-            </Label>
+            <FieldTooltip
+              htmlFor="portfolio"
+              label="Investment Portfolio"
+              tip="Stocks, bonds, and other liquid or semi-liquid assets accessible to fund expenses within a year's notice."
+            />
             <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
               <Input
                 id="portfolio"
