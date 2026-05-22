@@ -4,7 +4,7 @@ import { CalculatorForm } from "@/components/calculator-form";
 import { HeroSection } from "@/components/hero-section";
 import { ResultsChart } from "@/components/results-chart";
 import { useAuth } from "@/hooks/useAuth";
-import { computeAgeElapsed, createSnapshot } from "@/lib/api";
+import { computeAgeFromDOB, createSnapshot, getProfile } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -143,19 +143,28 @@ export default function HomePage() {
   }, [age, cash, investment, investmentReturn, sellAtRetirement, income, expense]);
 
   const handleHeroSignIn = async (credential: string) => {
-    await loginWithGoogle(credential);
-    router.push("/dashboard");
+    const tokens = await loginWithGoogle(credential);
+    const profile = await getProfile(tokens.access).catch(() => null);
+    router.push(profile?.date_of_birth ? "/dashboard" : "/onboarding");
   };
 
   const handleSignInAndSave = async (credential: string) => {
     const tokens = await loginWithGoogle(credential);
+    const profile = await getProfile(tokens.access).catch(() => null);
+
+    if (!profile?.date_of_birth) {
+      router.push("/onboarding");
+      return;
+    }
+
     const result = lastResultRef.current;
-    if (result && tokens.access) {
+    if (result) {
+      const { age: dobAge, ageElapsed } = computeAgeFromDOB(profile.date_of_birth);
       const proj = result.fineProjection.liquidAssetDict;
       await createSnapshot(
         {
-          age,
-          age_elapsed: computeAgeElapsed(),
+          age: dobAge,
+          age_elapsed: ageElapsed,
           income,
           expense,
           assets: [

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
-import { ApiSnapshot, computeAgeElapsed, createSnapshot, listSnapshots } from "@/lib/api"
+import { ApiSnapshot, ApiProfile, computeAgeFromDOB, createSnapshot, getProfile, listSnapshots } from "@/lib/api"
 import { useAuth } from "@/hooks/useAuth"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -120,16 +120,17 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, router])
 
-  // ── Snapshot data ──────────────────────────────────────────────────────
+  // ── Profile + snapshot data ────────────────────────────────────────────
+  const [profile, setProfile] = useState<ApiProfile | null>(null)
   const [snapshots, setSnapshots] = useState<ApiSnapshot[]>([])
   const [snapshotsLoading, setSnapshotsLoading] = useState(true)
 
   useEffect(() => {
     if (!accessToken) return
-    listSnapshots(accessToken)
-      .then(setSnapshots)
-      .catch(console.error)
-      .finally(() => setSnapshotsLoading(false))
+    Promise.all([
+      getProfile(accessToken).then(setProfile).catch(console.error),
+      listSnapshots(accessToken).then(setSnapshots).catch(console.error),
+    ]).finally(() => setSnapshotsLoading(false))
   }, [accessToken])
 
   // ── Snapshot selection ─────────────────────────────────────────────────
@@ -238,12 +239,15 @@ export default function DashboardPage() {
   // ── Save Analysis ──────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     if (!isModified || !accessToken || !liveResult || !latestSnap) return
+    const { age: dobAge, ageElapsed } = profile?.date_of_birth
+      ? computeAgeFromDOB(profile.date_of_birth)
+      : { age: latestSnap.age, ageElapsed: latestSnap.age_elapsed }
     const proj = liveResult.fineProjection.liquidAssetDict
     try {
       const snap = await createSnapshot(
         {
-          age: latestSnap.age,
-          age_elapsed: computeAgeElapsed(),
+          age: dobAge,
+          age_elapsed: ageElapsed,
           income: liveIncome,
           expense: liveExpense,
           assets: [
@@ -266,7 +270,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error("Save failed:", err)
     }
-  }, [isModified, accessToken, liveResult, latestSnap, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])
+  }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])
 
   const handleSignOut = () => {
     logout()

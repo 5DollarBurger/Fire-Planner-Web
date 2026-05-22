@@ -46,6 +46,10 @@ async function proxyRequest<T>(path: string, init: RequestInit, token: string): 
   return res.json()
 }
 
+export interface ApiProfile {
+  date_of_birth: string | null
+}
+
 export interface ApiSnapshot {
   id: number
   created_at: string
@@ -63,11 +67,29 @@ export interface ApiSnapshot {
   projection: { cash: number[]; investment: number[]; age: number[] }
 }
 
-export function computeAgeElapsed(): number {
+export function computeAgeFromDOB(dob: string): { age: number; ageElapsed: number } {
   const now = new Date()
-  const startOfYear = new Date(now.getFullYear(), 0, 1)
-  return Math.floor((now.getTime() - startOfYear.getTime()) / 86_400_000) / 365
+  const birth = new Date(dob)
+  const thisYearBirthday = new Date(now.getFullYear(), birth.getMonth(), birth.getDate())
+  const hasBirthdayPassed = now >= thisYearBirthday
+  const age = now.getFullYear() - birth.getFullYear() - (hasBirthdayPassed ? 0 : 1)
+  const lastBirthday = hasBirthdayPassed
+    ? thisYearBirthday
+    : new Date(now.getFullYear() - 1, birth.getMonth(), birth.getDate())
+  const nextBirthday = hasBirthdayPassed
+    ? new Date(now.getFullYear() + 1, birth.getMonth(), birth.getDate())
+    : thisYearBirthday
+  const ageElapsed =
+    (now.getTime() - lastBirthday.getTime()) /
+    (nextBirthday.getTime() - lastBirthday.getTime())
+  return { age, ageElapsed }
 }
+
+export const getProfile = (token: string) =>
+  proxyRequest<ApiProfile>("/api/profile", {}, token)
+
+export const updateProfile = (payload: Partial<ApiProfile>, token: string) =>
+  proxyRequest<ApiProfile>("/api/profile", { method: "PUT", body: JSON.stringify(payload) }, token)
 
 export const listSnapshots = (token: string) =>
   proxyRequest<ApiSnapshot[]>("/api/snapshots", {}, token)
