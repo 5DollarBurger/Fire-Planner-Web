@@ -4,8 +4,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { GoogleLogin } from "@react-oauth/google"
 import {
     Bar,
-    ComposedChart,
     CartesianGrid,
+    ComposedChart,
     Line,
     ReferenceLine,
     ResponsiveContainer,
@@ -35,7 +35,7 @@ interface ResultsChartProps {
   cashOnHand: number
   investmentPortfolio: number
   annualExpenses: number
-  sellAtRetirement: boolean
+//   sellAtRetirement: boolean
   loading: boolean
   error: string | null
   overlayData?: { age: number; total: number }[]
@@ -55,7 +55,7 @@ export function ResultsChart({
   cashOnHand,
   investmentPortfolio,
   annualExpenses,
-  sellAtRetirement,
+//   sellAtRetirement,
   loading,
   error,
   overlayData,
@@ -200,7 +200,8 @@ export function ResultsChart({
                   {targetFIRE === null ? "—" : formatCurrencyFull(Math.round(targetFIRE))}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {sellAtRetirement ? "Cash out at retirement" : "From returns alone"}
+                  {/* {sellAtRetirement ? "Cash out at retirement" : "From returns alone"} */}
+                  From returns alone
                 </p>
               </div>
               <div className="hidden sm:block h-px bg-border" />
@@ -315,9 +316,11 @@ export function ResultsChart({
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             At age {retirementAge}, projected capital of{" "}
             <span className="text-foreground">{formatCurrencyFull(Math.round(targetFIRE))}</span>{" "}
-            will {sellAtRetirement ? "permit withdrawals of" : "generate"}{" "}
+            {/* will {sellAtRetirement ? "permit withdrawals of" : "generate"}{" "} */}
+            will generate
             <span className="text-foreground">{formatCurrencyFull(annualExpenses)}</span> annually
-            {sellAtRetirement ? " by cashing out investments at retirement" : " from investment returns alone"}.
+            {/* {sellAtRetirement ? " by cashing out investments at retirement" : " from investment returns alone"}. */}
+            {" "}from investment returns alone
           </p>
         </div>
       )}

@@ -51,7 +51,7 @@ export default function HomePage() {
   const [investmentReturn, setInvestmentReturn] = useState(
     Math.round((investmentAsset?.return ?? 0.07) * 100 * 10) / 10,
   );
-  const [sellAtRetirement, setSellAtRetirement] = useState(defaultInputs.sellInvestmentAtRetirement);
+//   const [sellAtRetirement, setSellAtRetirement] = useState(defaultInputs.sellInvestmentAtRetirement);
   const [income, setIncome] = useState(defaultInputs.income);
   const [expense, setExpense] = useState(defaultInputs.expense);
 
@@ -92,7 +92,7 @@ export default function HomePage() {
         ageElapsed,
         income,
         expense,
-        sellInvestmentAtRetirement: sellAtRetirement,
+        // sellInvestmentAtRetirement: sellAtRetirement,
         assetList: [
           { name: "cash", value: cash, return: 0 },
           { name: "investment", value: investment, return: investmentReturn / 100 },
@@ -142,7 +142,8 @@ export default function HomePage() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [age, cash, investment, investmentReturn, sellAtRetirement, income, expense]);
+//   }, [age, cash, investment, investmentReturn, sellAtRetirement, income, expense]);
+  }, [age, cash, investment, investmentReturn, income, expense]);
 
   const storePendingSnapshot = () => {
     const result = lastResultRef.current
@@ -157,7 +158,7 @@ export default function HomePage() {
           { name: "cash", value: cash, return: 0 },
           { name: "investment", value: investment, return: investmentReturn / 100 },
         ],
-        sell_at_retirement: sellAtRetirement,
+        // sell_at_retirement: sellAtRetirement,
         retirement_age: result.retirementAge,
         years_to_retire: result.fineProjection.yearsToRetire,
         months_to_retire: result.fineProjection.monthsToRetire,
@@ -199,7 +200,7 @@ export default function HomePage() {
             { name: "cash", value: cash, return: 0 },
             { name: "investment", value: investment, return: investmentReturn / 100 },
           ],
-          sell_at_retirement: sellAtRetirement,
+        //   sell_at_retirement: sellAtRetirement,
           retirement_age: result.retirementAge,
           years_to_retire: result.fineProjection.yearsToRetire,
           months_to_retire: result.fineProjection.monthsToRetire,
@@ -220,7 +221,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Top bar */}
           <div className="flex items-center justify-between py-2 border-b border-border text-xs text-muted-foreground">
-            <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <span suppressHydrationWarning>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             <span>Free Financial Planning Tools</span>
           </div>
           {/* Main header */}
@@ -305,8 +306,8 @@ export default function HomePage() {
                 setInvestmentPortfolio={setInvestment}
                 portfolioReturn={investmentReturn}
                 setPortfolioReturn={setInvestmentReturn}
-                sellAtRetirement={sellAtRetirement}
-                setSellAtRetirement={setSellAtRetirement}
+                // sellAtRetirement={sellAtRetirement}
+                // setSellAtRetirement={setSellAtRetirement}
                 annualIncome={income}
                 setAnnualIncome={setIncome}
                 annualExpenses={expense}
@@ -325,7 +326,7 @@ export default function HomePage() {
                 cashOnHand={cash}
                 investmentPortfolio={investment}
                 annualExpenses={expense}
-                sellAtRetirement={sellAtRetirement}
+                // sellAtRetirement={sellAtRetirement}
                 loading={loading}
                 error={error}
                 isAuthenticated={isAuthenticated}

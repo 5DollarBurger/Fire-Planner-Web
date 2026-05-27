@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
 const STEP = 1000
@@ -42,8 +41,8 @@ interface CalculatorFormProps {
   setInvestmentPortfolio: (value: number) => void
   portfolioReturn: number
   setPortfolioReturn: (value: number) => void
-  sellAtRetirement: boolean
-  setSellAtRetirement: (value: boolean) => void
+//   sellAtRetirement: boolean
+//   setSellAtRetirement: (value: boolean) => void
   annualIncome: number
   setAnnualIncome: (value: number) => void
   annualExpenses: number
@@ -59,8 +58,8 @@ export function CalculatorForm({
   setInvestmentPortfolio,
   portfolioReturn,
   setPortfolioReturn,
-  sellAtRetirement,
-  setSellAtRetirement,
+//   sellAtRetirement,
+//   setSellAtRetirement,
   annualIncome,
   setAnnualIncome,
   annualExpenses,
@@ -223,7 +222,7 @@ export function CalculatorForm({
           </div>
 
           {/* Sell at Retirement Toggle */}
-          <div className="flex items-start justify-between gap-4">
+          {/* <div className="flex items-start justify-between gap-4">
             <div>
               <Label htmlFor="sell-toggle" className="text-xs uppercase tracking-wider text-muted-foreground block mb-1">
                 Withdrawal Strategy
@@ -237,7 +236,7 @@ export function CalculatorForm({
               checked={sellAtRetirement}
               onCheckedChange={setSellAtRetirement}
             />
-          </div>
+          </div> */}
         </div>
       </CardContent>
     </Card>
