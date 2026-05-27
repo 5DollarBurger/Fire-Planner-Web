@@ -179,7 +179,7 @@ export default function DashboardPage() {
   const [liveCash, setLiveCash] = useState(0)
   const [liveInvestment, setLiveInvestment] = useState(0)
   const [liveReturn, setLiveReturn] = useState(7)
-  const [liveSellAtRetirement, setLiveSellAtRetirement] = useState(true)
+//   const [liveSellAtRetirement, setLiveSellAtRetirement] = useState(true)
   const [liveResult, setLiveResult] = useState<SnapshotResult | null>(null)
   const [liveLoading, setLiveLoading] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -192,7 +192,7 @@ export default function DashboardPage() {
       setLiveCash(DEFAULT_CASH?.value ?? 30000)
       setLiveInvestment(DEFAULT_INV?.value ?? 50000)
       setLiveReturn(Math.round((DEFAULT_INV?.return ?? 0.07) * 100 * 10) / 10)
-      setLiveSellAtRetirement(defaultInputs.sellInvestmentAtRetirement)
+    //   setLiveSellAtRetirement(defaultInputs.sellInvestmentAtRetirement)
       setLiveResult(buildDefaultResult())
       return
     }
@@ -204,7 +204,7 @@ export default function DashboardPage() {
     setLiveCash(cash?.value ?? 0)
     setLiveInvestment(inv?.value ?? 0)
     setLiveReturn(Math.round((inv?.return ?? 0.07) * 100 * 10) / 10)
-    setLiveSellAtRetirement(latestSnap.sell_at_retirement)
+    // setLiveSellAtRetirement(latestSnap.sell_at_retirement)
     setLiveResult(null)
     setSaved(false)
   }, [latestSnap, snapshotsLoading])
@@ -230,7 +230,7 @@ export default function DashboardPage() {
             ageElapsed: ageInfo.ageElapsed,
             income: liveIncome,
             expense: liveExpense,
-            sellInvestmentAtRetirement: liveSellAtRetirement,
+            // sellInvestmentAtRetirement: liveSellAtRetirement,
             assetList: [
               { name: "cash", value: liveCash, return: 0 },
               { name: "investment", value: liveInvestment, return: liveReturn / 100 },
@@ -243,7 +243,8 @@ export default function DashboardPage() {
       }
     }, 1000)
     return () => clearTimeout(timer)
-  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement, latestSnap, profile])
+//   }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement, latestSnap, profile])
+  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, latestSnap, profile])
 
   // ── Derived chart data ─────────────────────────────────────────────────
   const liveChartData: ChartRow[] = liveResult
@@ -272,8 +273,7 @@ export default function DashboardPage() {
       liveExpense !== latestSnap.expense ||
       liveCash !== (latestCashAsset?.value ?? 0) ||
       liveInvestment !== (latestInvAsset?.value ?? 0) ||
-      Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001 ||
-      liveSellAtRetirement !== latestSnap.sell_at_retirement
+      Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001
 
   const ageDelta =
     liveResult && selectedResult
@@ -300,7 +300,7 @@ export default function DashboardPage() {
             { name: "cash", value: liveCash, return: 0 },
             { name: "investment", value: liveInvestment, return: liveReturn / 100 },
           ],
-          sell_at_retirement: liveSellAtRetirement,
+        //   sell_at_retirement: liveSellAtRetirement,
           retirement_age: liveResult.retirementAge,
           years_to_retire: liveResult.fineProjection.yearsToRetire,
           months_to_retire: liveResult.fineProjection.monthsToRetire,
@@ -324,7 +324,8 @@ export default function DashboardPage() {
     } catch (err) {
       console.error("Save failed:", err)
     }
-  }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])  // latestSnap kept for age fallback
+//   }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])  // latestSnap kept for age fallback
+  }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn])  // latestSnap kept for age fallback
 
   const handleSignOut = () => {
     logout()
@@ -349,7 +350,7 @@ export default function DashboardPage() {
       <header className="border-b border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-2 border-b border-border text-xs text-muted-foreground">
-            <span>
+            <span suppressHydrationWarning>
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",
@@ -468,12 +469,12 @@ export default function DashboardPage() {
                                 {Math.round((snapInv?.return ?? 0) * 100 * 10) / 10}%
                               </p>
                             </div>
-                            <div>
+                            {/* <div>
                               <p className="text-xs text-muted-foreground">Strategy</p>
                               <p className="text-xs font-serif text-foreground">
                                 {snap.sell_at_retirement ? "Cash out" : "Returns only"}
                               </p>
-                            </div>
+                            </div> */}
                           </div>
                         </div>
                       </CardContent>
@@ -648,7 +649,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  {/* <div className="flex items-center justify-between">
                     <div>
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">
                         Sell at Retirement
@@ -661,7 +662,7 @@ export default function DashboardPage() {
                       checked={liveSellAtRetirement}
                       onCheckedChange={setLiveSellAtRetirement}
                     />
-                  </div>
+                  </div> */}
 
                   <div className="h-px bg-border" />
 
@@ -691,7 +692,7 @@ export default function DashboardPage() {
               cashOnHand={liveCash}
               investmentPortfolio={liveInvestment}
               annualExpenses={liveExpense}
-              sellAtRetirement={liveSellAtRetirement}
+            //   sellAtRetirement={liveSellAtRetirement}
               loading={liveLoading && liveResult === null}
               error={null}
               overlayData={baselineOverlay}
