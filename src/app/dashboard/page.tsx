@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/hooks/useAuth"
 import { ApiProfile, ApiSnapshot, computeAgeFromDOB, createSnapshot, getProfile, listSnapshots } from "@/lib/api"
 import { ChevronDown, ChevronUp } from "lucide-react"
@@ -248,7 +247,7 @@ export default function DashboardPage() {
 
   // ── Derived chart data ─────────────────────────────────────────────────
   const liveChartData: ChartRow[] = liveResult
-    ? liveResult.fineProjection.liquidAssetDict.age.map((a, i) => ({
+    ? liveResult.fineProjection.liquidAssetDict.age.slice(0, -1).map((a, i) => ({
         age: a,
         cash: liveResult.fineProjection.liquidAssetDict.cash[i],
         investment: liveResult.fineProjection.liquidAssetDict.investment[i],
@@ -256,7 +255,7 @@ export default function DashboardPage() {
     : []
 
   const baselineOverlay = selectedResult
-    ? selectedResult.fineProjection.liquidAssetDict.age.map((a, i) => ({
+    ? selectedResult.fineProjection.liquidAssetDict.age.slice(0, -1).map((a, i) => ({
         age: a,
         total:
           selectedResult.fineProjection.liquidAssetDict.cash[i] +

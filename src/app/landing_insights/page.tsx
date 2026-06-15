@@ -4,7 +4,7 @@ import { CalculatorForm } from "@/components/calculator-form";
 import { HeroSection } from "@/components/hero-section";
 import { ResultsChart } from "@/components/results-chart";
 import { useAuth } from "@/hooks/useAuth";
-import { computeAgeFromDOB, createSnapshot, getProfile } from "@/lib/api";
+import { getProfile } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -33,7 +33,7 @@ const cashAsset = defaultInputs.assetList.find((a) => a.name === "cash");
 const investmentAsset = defaultInputs.assetList.find((a) => a.name === "investment");
 
 const defaultProjection = defaultRetirement.fineProjection.liquidAssetDict;
-const initialChartData: ChartRow[] = defaultProjection.age.map((a, i) => ({
+const initialChartData: ChartRow[] = defaultProjection.age.slice(0, -1).map((a, i) => ({
   age: a,
   cash: defaultProjection.cash[i],
   investment: defaultProjection.investment[i],
@@ -127,7 +127,7 @@ export default function HomePage() {
 
         const proj = retirementResult.fineProjection.liquidAssetDict;
         setChartData(
-          proj.age.map((a, i) => ({
+          proj.age.slice(0, -1).map((a, i) => ({
             age: a,
             cash: proj.cash[i],
             investment: proj.investment[i],
@@ -186,31 +186,6 @@ export default function HomePage() {
       return;
     }
 
-    const result = lastResultRef.current;
-    if (result) {
-      const { age: dobAge, ageElapsed } = computeAgeFromDOB(profile.date_of_birth);
-      const proj = result.fineProjection.liquidAssetDict;
-      await createSnapshot(
-        {
-          age: dobAge,
-          age_elapsed: ageElapsed,
-          income,
-          expense,
-          assets: [
-            { name: "cash", value: cash, return: 0 },
-            { name: "investment", value: investment, return: investmentReturn / 100 },
-          ],
-        //   sell_at_retirement: sellAtRetirement,
-          retirement_age: result.retirementAge,
-          years_to_retire: result.fineProjection.yearsToRetire,
-          months_to_retire: result.fineProjection.monthsToRetire,
-          days_to_retire: result.fineProjection.daysToRetire,
-          target_fire: result.fineProjection.targetFIRE,
-          projection: { cash: proj.cash, investment: proj.investment, age: proj.age },
-        },
-        tokens.access,
-      ).catch(console.error);
-    }
     router.push("/dashboard");
   };
 
