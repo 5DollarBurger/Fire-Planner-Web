@@ -10,7 +10,8 @@ function djangoHeaders(auth: string) {
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("Authorization") ?? ""
   const res = await fetch(`${DJANGO}/profile/`, { headers: djangoHeaders(auth) })
-  return NextResponse.json(await res.json(), { status: res.status })
+  const data = await res.json().catch(() => ({ detail: "Upstream error" }))
+  return NextResponse.json(data, { status: res.status })
 }
 
 export async function PUT(req: NextRequest) {
@@ -21,5 +22,6 @@ export async function PUT(req: NextRequest) {
     headers: djangoHeaders(auth),
     body,
   })
-  return NextResponse.json(await res.json(), { status: res.status })
+  const data = await res.json().catch(() => ({ detail: "Upstream error" }))
+  return NextResponse.json(data, { status: res.status })
 }

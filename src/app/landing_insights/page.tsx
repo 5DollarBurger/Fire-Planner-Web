@@ -146,9 +146,6 @@ export default function HomePage() {
   }, [age, cash, investment, investmentReturn, income, expense]);
 
   const storePendingSnapshot = () => {
-    const result = lastResultRef.current
-    if (!result) return
-    const proj = result.fineProjection.liquidAssetDict
     sessionStorage.setItem(
       PENDING_SNAPSHOT_KEY,
       JSON.stringify({
@@ -158,13 +155,6 @@ export default function HomePage() {
           { name: "cash", value: cash, return: 0 },
           { name: "investment", value: investment, return: investmentReturn / 100 },
         ],
-        // sell_at_retirement: sellAtRetirement,
-        retirement_age: result.retirementAge,
-        years_to_retire: result.fineProjection.yearsToRetire,
-        months_to_retire: result.fineProjection.monthsToRetire,
-        days_to_retire: result.fineProjection.daysToRetire,
-        target_fire: result.fineProjection.targetFIRE,
-        projection: { cash: proj.cash, investment: proj.investment, age: proj.age },
       }),
     )
   }

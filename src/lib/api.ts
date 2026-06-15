@@ -48,23 +48,16 @@ async function proxyRequest<T>(path: string, init: RequestInit, token: string): 
 
 export interface ApiProfile {
   date_of_birth: string | null
+  gender: "male" | "female"
+  country: string
 }
 
 export interface ApiSnapshot {
   id: number
   created_at: string
-  age: number
-  age_elapsed: number
   income: number
   expense: number
   assets: { name: string; value: number; return: number }[]
-  sell_at_retirement: boolean
-  retirement_age: number
-  years_to_retire: number
-  months_to_retire: number
-  days_to_retire: number
-  target_fire: number
-  projection: { cash: number[]; investment: number[]; age: number[] }
 }
 
 export function computeAgeFromDOB(dob: string): { age: number; ageElapsed: number } {

@@ -60,26 +60,6 @@ function buildDefaultResult(): SnapshotResult {
 const DEFAULT_CASH = defaultInputs.assetList.find((a) => a.name === "cash")
 const DEFAULT_INV = defaultInputs.assetList.find((a) => a.name === "investment")
 
-function toSnapshotResult(snap: ApiSnapshot): SnapshotResult {
-  const total = snap.projection.cash.map((c, i) => c + snap.projection.investment[i])
-  return {
-    retirementAge: snap.retirement_age,
-    yearsToRetire: snap.years_to_retire,
-    targetFIRE: snap.target_fire,
-    fineProjection: {
-      yearsToRetire: snap.years_to_retire,
-      monthsToRetire: snap.months_to_retire,
-      daysToRetire: snap.days_to_retire,
-      targetFIRE: snap.target_fire,
-      liquidAssetDict: {
-        cash: snap.projection.cash,
-        investment: snap.projection.investment,
-        total,
-        age: snap.projection.age,
-      },
-    },
-  }
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -165,7 +145,6 @@ export default function DashboardPage() {
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   const selected = snapshots[selectedIndex]
-  const selectedResult = selected ? toSnapshotResult(selected) : null
   const cashAsset = selected?.assets.find((a) => a.name === "cash")
   const investmentAsset = selected?.assets.find((a) => a.name === "investment")
 
@@ -182,6 +161,31 @@ export default function DashboardPage() {
   const [liveResult, setLiveResult] = useState<SnapshotResult | null>(null)
   const [liveLoading, setLiveLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  // ── Selected snapshot result (computed on demand) ──────────────────────
+  const [selectedResult, setSelectedResult] = useState<SnapshotResult | null>(null)
+
+  useEffect(() => {
+    if (!selected || !profile?.date_of_birth) return
+    const { age, ageElapsed } = computeAgeFromDOB(profile.date_of_birth)
+    setSelectedResult(null)
+    fetch("/api/retirement-age", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        age,
+        ageElapsed,
+        gender: profile.gender ?? "female",
+        country: profile.country ?? "SGP",
+        income: selected.income,
+        expense: selected.expense,
+        assetList: selected.assets,
+      }),
+    })
+      .then((r) => r.json())
+      .then((r) => setSelectedResult(r as SnapshotResult))
+      .catch(console.error)
+  }, [selected?.id, profile?.date_of_birth, profile?.gender, profile?.country])
 
   // Seed live inputs when snapshots load or selected snapshot changes
   useEffect(() => {
@@ -213,9 +217,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const ageInfo = profile?.date_of_birth
       ? computeAgeFromDOB(profile.date_of_birth)
-      : latestSnap
-        ? { age: latestSnap.age, ageElapsed: latestSnap.age_elapsed }
-        : null
+      : null
     if (!ageInfo) return
     setSaved(false)
     setLiveLoading(true)
@@ -227,6 +229,8 @@ export default function DashboardPage() {
           body: JSON.stringify({
             age: ageInfo.age,
             ageElapsed: ageInfo.ageElapsed,
+            gender: profile?.gender ?? "female",
+            country: profile?.country ?? "SGP",
             income: liveIncome,
             expense: liveExpense,
             // sellInvestmentAtRetirement: liveSellAtRetirement,
@@ -243,7 +247,7 @@ export default function DashboardPage() {
     }, 1000)
     return () => clearTimeout(timer)
 //   }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement, latestSnap, profile])
-  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, latestSnap, profile])
+  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, profile])
 
   // ── Derived chart data ─────────────────────────────────────────────────
   const liveChartData: ChartRow[] = liveResult
@@ -282,30 +286,15 @@ export default function DashboardPage() {
   // ── Save Analysis ──────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     if (!isModified || !accessToken || !liveResult) return
-    const { age: dobAge, ageElapsed } = profile?.date_of_birth
-      ? computeAgeFromDOB(profile.date_of_birth)
-      : latestSnap
-        ? { age: latestSnap.age, ageElapsed: latestSnap.age_elapsed }
-        : { age: 0, ageElapsed: 0 }
-    const proj = liveResult.fineProjection.liquidAssetDict
     try {
       const snap = await createSnapshot(
         {
-          age: dobAge,
-          age_elapsed: ageElapsed,
           income: liveIncome,
           expense: liveExpense,
           assets: [
             { name: "cash", value: liveCash, return: 0 },
             { name: "investment", value: liveInvestment, return: liveReturn / 100 },
           ],
-        //   sell_at_retirement: liveSellAtRetirement,
-          retirement_age: liveResult.retirementAge,
-          years_to_retire: liveResult.fineProjection.yearsToRetire,
-          months_to_retire: liveResult.fineProjection.monthsToRetire,
-          days_to_retire: liveResult.fineProjection.daysToRetire,
-          target_fire: liveResult.fineProjection.targetFIRE,
-          projection: { cash: proj.cash, investment: proj.investment, age: proj.age },
         },
         accessToken,
       )
@@ -323,8 +312,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error("Save failed:", err)
     }
-//   }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement])  // latestSnap kept for age fallback
-  }, [isModified, accessToken, liveResult, latestSnap, profile, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn])  // latestSnap kept for age fallback
+  }, [isModified, accessToken, liveResult, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn])
 
   const handleSignOut = () => {
     logout()
@@ -413,7 +401,6 @@ export default function DashboardPage() {
             ) : null}
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
               {snapshots.map((snap, i) => {
-                const result = toSnapshotResult(snap)
                 const netWorth = snap.assets.reduce((sum, a) => sum + a.value, 0)
                 const isSelected = i === selectedIndex
                 const snapCash = snap.assets.find((a) => a.name === "cash")
@@ -439,10 +426,6 @@ export default function DashboardPage() {
                           {formatCurrency(netWorth)}
                         </p>
                         <p className="text-xs text-muted-foreground mb-3">Net worth</p>
-                        <div className="h-px bg-border mb-3" />
-                        <p className="text-sm text-foreground font-serif">
-                          Retire at age {result.retirementAge}
-                        </p>
                         <div className="overflow-hidden max-h-0 group-hover:max-h-48 transition-all duration-200 ease-in-out">
                           <div className="h-px bg-border mt-3 mb-3" />
                           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
