@@ -113,7 +113,7 @@ export function CalculatorForm({
             <FieldTooltip
               htmlFor="income"
               label="Annual Income"
-              tip="Accessible liquid income net of taxes, mortgage, and pension contributions — money available for savings, investing, and day-to-day expenses."
+              tip="Your annual income before tax. Used to calculate tax brackets, CPF contributions, and net savings."
             />
             <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
               <Input

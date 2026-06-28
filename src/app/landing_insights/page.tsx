@@ -3,6 +3,7 @@
 import { CalculatorForm } from "@/components/calculator-form";
 import { CpfForm, type Age55Withdrawal, type CpfLifePlan } from "@/components/cpf-form";
 import { CpfResultsChart, type CpfChartRow } from "@/components/cpf-results-chart";
+import { type ExpenseProjection } from "@/components/expense-coverage-chart";
 import { HeroSection } from "@/components/hero-section";
 import { ResultsChart } from "@/components/results-chart";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,7 +19,7 @@ const PENDING_SNAPSHOT_KEY = "fire_pending_snapshot"
 
 type Tab = "calculator" | "cpf"
 
-type ChartRow = { age: number; cash: number; investment: number };
+type ChartRow = { age: number; cash: number; investment: number; cpf: number };
 
 type FineProjection = {
   yearsToRetire: number;
@@ -28,6 +29,7 @@ type FineProjection = {
   liquidAssetDict: {
     cash: number[];
     investment: number[];
+    cpf?: number[];
     total: number[];
     age: number[];
   };
@@ -38,10 +40,11 @@ const cashAsset = defaultInputs.assetList.find((a) => a.name === "cash");
 const investmentAsset = defaultInputs.assetList.find((a) => a.name === "investment");
 
 const defaultProjection = defaultRetirement.fineProjection.liquidAssetDict;
-const initialChartData: ChartRow[] = defaultProjection.age.slice(0, -1).map((a, i) => ({
+const initialChartData: ChartRow[] = defaultProjection.age.map((a, i) => ({
   age: a,
   cash: defaultProjection.cash[i],
   investment: defaultProjection.investment[i],
+  cpf: 0,
 }));
 
 const initialCpfChartData: CpfChartRow[] = defaultPension.age.map((a, i) => ({
@@ -87,10 +90,13 @@ export default function HomePage() {
   const [daysToRetire, setDaysToRetire] = useState<number | null>(defaultRetirement.fineProjection.daysToRetire);
   const [targetFIRE, setTargetFIRE] = useState<number | null>(defaultRetirement.fineProjection.targetFIRE);
   const [chartData, setChartData] = useState<ChartRow[]>(initialChartData);
+  const [expenseProjection, setExpenseProjection] = useState<ExpenseProjection | null>(
+    (defaultRetirement as { expenseProjection?: ExpenseProjection }).expenseProjection ?? null
+  );
   const [calcLoading, setCalcLoading] = useState(false);
   const [calcError, setCalcError] = useState<string | null>(null);
 
-  // CPF results
+  // CPF results (CPF tab — current balances, no future contributions)
   const [expenseCoverage, setExpenseCoverage] = useState<number | null>(defaultPension.expenseCoverage);
   const [cpfChartData, setCpfChartData] = useState<CpfChartRow[]>(initialCpfChartData);
   const [cpfLoading, setCpfLoading] = useState(false);
@@ -107,6 +113,12 @@ export default function HomePage() {
 
   const isFirstCalcRender = useRef(true);
   const isFirstCpfRender = useRef(true);
+
+  // Refs so the calculator effect always reads the latest CPF values without them being deps
+  const cpfRef = useRef({ oa, sa, ma, cpfLifePlan, cpfLifePayoutAge, age55Withdrawal });
+  useEffect(() => {
+    cpfRef.current = { oa, sa, ma, cpfLifePlan, cpfLifePayoutAge, age55Withdrawal };
+  }, [oa, sa, ma, cpfLifePlan, cpfLifePayoutAge, age55Withdrawal]);
 
   // Debounced calculator call
   useEffect(() => {
@@ -130,6 +142,13 @@ export default function HomePage() {
               { name: "cash", value: cash, return: 0 },
               { name: "investment", value: investment, return: investmentReturn / 100 },
             ],
+            pension: {
+              oa: cpfRef.current.oa,
+              sa: cpfRef.current.sa,
+              ma: cpfRef.current.ma,
+              cpfLife: { plan: cpfRef.current.cpfLifePlan, payoutAge: cpfRef.current.cpfLifePayoutAge },
+              age55Withdrawal: cpfRef.current.age55Withdrawal,
+            },
           }),
         });
         if (!res.ok) {
@@ -143,19 +162,22 @@ export default function HomePage() {
           daysToRetire: number;
           targetFIRE: number;
           fineProjection: FineProjection;
+          expenseProjection: ExpenseProjection;
         };
         setRetirementAge(result.retirementAge);
         setYearsToRetire(result.fineProjection.yearsToRetire);
         setMonthsToRetire(result.fineProjection.monthsToRetire);
         setDaysToRetire(result.fineProjection.daysToRetire);
         setTargetFIRE(result.fineProjection.targetFIRE);
+        setExpenseProjection(result.expenseProjection);
         lastResultRef.current = result;
         const proj = result.fineProjection.liquidAssetDict;
         setChartData(
-          proj.age.slice(0, -1).map((a, i) => ({
+          proj.age.map((a, i) => ({
             age: a,
             cash: proj.cash[i],
             investment: proj.investment[i],
+            cpf: proj.cpf?.[i] ?? 0,
           })),
         );
       } catch (err) {
@@ -378,6 +400,7 @@ export default function HomePage() {
                   annualExpenses={expense}
                   loading={calcLoading}
                   error={calcError}
+                  expenseProjection={expenseProjection}
                   isAuthenticated={isAuthenticated}
                   onSignInAndSave={handleSignInAndSave}
                 />

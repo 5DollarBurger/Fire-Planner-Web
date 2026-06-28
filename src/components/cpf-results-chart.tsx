@@ -40,7 +40,9 @@ interface CpfResultsChartProps {
   error: string | null
 }
 
-export function CpfResultsChart({ expenseCoverage, chartData, loading, error }: CpfResultsChartProps) {
+export function CpfResultsChart({ expenseCoverage, chartData: rawChartData, loading, error }: CpfResultsChartProps) {
+  // Drop the final partial year to match the wealth projection chart's visible range
+  const chartData = rawChartData.slice(0, -1)
   const formatCurrency = (value: number) => {
     if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
     if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`

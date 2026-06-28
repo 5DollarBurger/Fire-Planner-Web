@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
+import { ExpenseCoverageChart, type ExpenseProjection } from "@/components/expense-coverage-chart"
 import { GoogleLogin } from "@react-oauth/google"
 import {
     Bar,
@@ -23,6 +24,7 @@ export interface ChartRow {
   age: number
   cash: number
   investment: number
+  cpf: number
 }
 
 interface ResultsChartProps {
@@ -38,6 +40,7 @@ interface ResultsChartProps {
 //   sellAtRetirement: boolean
   loading: boolean
   error: string | null
+  expenseProjection?: ExpenseProjection | null
   overlayData?: { age: number; total: number }[]
   overlayLabel?: string
   overlayRetirementAge?: number | null
@@ -58,6 +61,7 @@ export function ResultsChart({
 //   sellAtRetirement,
   loading,
   error,
+  expenseProjection,
   overlayData,
   overlayLabel = "Baseline",
   overlayRetirementAge,
@@ -91,7 +95,7 @@ export function ResultsChart({
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
-      const total = data.cash + data.investment
+      const total = data.cash + data.investment + data.cpf
       return (
         <div className="bg-card border border-border p-4 shadow-sm">
           <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
@@ -100,6 +104,7 @@ export function ResultsChart({
           <div className="space-y-1 font-serif">
             <p className="text-sm text-foreground">Cash: {formatCurrencyFull(data.cash)}</p>
             <p className="text-sm text-accent">Investments: {formatCurrencyFull(data.investment)}</p>
+            <p className="text-sm" style={{ color: "#2563eb" }}>CPF: {formatCurrencyFull(data.cpf)}</p>
             <div className="h-px bg-border my-2" />
             <p className="text-sm font-semibold text-foreground">
               Total: {formatCurrencyFull(total)}
@@ -223,6 +228,11 @@ export function ResultsChart({
         </CardContent>
       </Card>
 
+      {/* Expense Coverage Chart */}
+      {expenseProjection && retirementAge != null && (
+        <ExpenseCoverageChart expenseProjection={expenseProjection} retirementAge={retirementAge} />
+      )}
+
       {/* Wealth Projection Chart */}
       {chartData.length > 0 && (
         <Card className="border-border bg-card">
@@ -239,6 +249,10 @@ export function ResultsChart({
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-accent" />
                 <span className="text-muted-foreground">Investments</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3" style={{ backgroundColor: "#2563eb" }} />
+                <span className="text-muted-foreground">CPF</span>
               </div>
               {overlayData && overlayData.length > 0 && (
                 <div className="flex items-center gap-2">
@@ -291,6 +305,7 @@ export function ResultsChart({
                   )}
                   <Bar dataKey="cash" name="Cash" stackId="wealth" fill="var(--primary)" radius={0} />
                   <Bar dataKey="investment" name="Investments" stackId="wealth" fill="var(--accent)" radius={0} />
+                  <Bar dataKey="cpf" name="CPF" stackId="wealth" fill="#2563eb" radius={0} />
                   {overlayData && overlayData.length > 0 && (
                     <Line
                       dataKey="liveTotal"

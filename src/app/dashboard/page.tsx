@@ -23,6 +23,7 @@ type FineProjection = {
   liquidAssetDict: {
     cash: number[]
     investment: number[]
+    cpf?: number[]
     total: number[]
     age: number[]
   }
@@ -251,15 +252,16 @@ export default function DashboardPage() {
 
   // ── Derived chart data ─────────────────────────────────────────────────
   const liveChartData: ChartRow[] = liveResult
-    ? liveResult.fineProjection.liquidAssetDict.age.slice(0, -1).map((a, i) => ({
+    ? liveResult.fineProjection.liquidAssetDict.age.map((a, i) => ({
         age: a,
         cash: liveResult.fineProjection.liquidAssetDict.cash[i],
         investment: liveResult.fineProjection.liquidAssetDict.investment[i],
+        cpf: liveResult.fineProjection.liquidAssetDict.cpf?.[i] ?? 0,
       }))
     : []
 
   const baselineOverlay = selectedResult
-    ? selectedResult.fineProjection.liquidAssetDict.age.slice(0, -1).map((a, i) => ({
+    ? selectedResult.fineProjection.liquidAssetDict.age.map((a, i) => ({
         age: a,
         total:
           selectedResult.fineProjection.liquidAssetDict.cash[i] +
