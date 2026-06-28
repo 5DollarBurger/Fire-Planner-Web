@@ -114,11 +114,6 @@ export default function HomePage() {
   const isFirstCalcRender = useRef(true);
   const isFirstCpfRender = useRef(true);
 
-  // Refs so the calculator effect always reads the latest CPF values without them being deps
-  const cpfRef = useRef({ oa, sa, ma, cpfLifePlan, cpfLifePayoutAge, age55Withdrawal });
-  useEffect(() => {
-    cpfRef.current = { oa, sa, ma, cpfLifePlan, cpfLifePayoutAge, age55Withdrawal };
-  }, [oa, sa, ma, cpfLifePlan, cpfLifePayoutAge, age55Withdrawal]);
 
   // Debounced calculator call
   useEffect(() => {
@@ -143,11 +138,11 @@ export default function HomePage() {
               { name: "investment", value: investment, return: investmentReturn / 100 },
             ],
             pension: {
-              oa: cpfRef.current.oa,
-              sa: cpfRef.current.sa,
-              ma: cpfRef.current.ma,
-              cpfLife: { plan: cpfRef.current.cpfLifePlan, payoutAge: cpfRef.current.cpfLifePayoutAge },
-              age55Withdrawal: cpfRef.current.age55Withdrawal,
+              oa,
+              sa,
+              ma,
+              cpfLife: { plan: cpfLifePlan, payoutAge: cpfLifePayoutAge },
+              age55Withdrawal,
             },
           }),
         });
@@ -188,7 +183,7 @@ export default function HomePage() {
       }
     }, 1000);
     return () => clearTimeout(timer);
-  }, [age, cash, investment, investmentReturn, income, expense]);
+  }, [age, cash, investment, investmentReturn, income, expense, oa, sa, ma, cpfLifePlan, cpfLifePayoutAge, age55Withdrawal]);
 
   // Debounced CPF call
   useEffect(() => {
@@ -261,6 +256,12 @@ export default function HomePage() {
           { name: "cash", value: cash, return: 0 },
           { name: "investment", value: investment, return: investmentReturn / 100 },
         ],
+        oa,
+        sa,
+        ma,
+        age55Withdrawal,
+        cpfLifePlan,
+        cpfLifePayoutAge,
       }),
     );
   };

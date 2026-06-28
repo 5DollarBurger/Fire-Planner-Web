@@ -58,6 +58,12 @@ export interface ApiSnapshot {
   income: number
   expense: number
   assets: { name: string; value: number; return: number }[]
+  oa: number
+  sa: number
+  ma: number
+  age55Withdrawal: "brs_withdrawal" | "frs_withdrawal" | "ers_pursuit"
+  cpfLifePlan: "basic" | "standard" | "escalating"
+  cpfLifePayoutAge: number
 }
 
 export function computeAgeFromDOB(dob: string): { age: number; ageElapsed: number } {

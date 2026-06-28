@@ -158,6 +158,12 @@ export default function DashboardPage() {
   const [liveCash, setLiveCash] = useState(0)
   const [liveInvestment, setLiveInvestment] = useState(0)
   const [liveReturn, setLiveReturn] = useState(7)
+  const [liveOa, setLiveOa] = useState(0)
+  const [liveSa, setLiveSa] = useState(0)
+  const [liveMa, setLiveMa] = useState(0)
+  const [liveAge55Withdrawal, setLiveAge55Withdrawal] = useState<"brs_withdrawal" | "frs_withdrawal" | "ers_pursuit">("frs_withdrawal")
+  const [liveCpfLifePlan, setLiveCpfLifePlan] = useState<"basic" | "standard" | "escalating">("standard")
+  const [liveCpfLifePayoutAge, setLiveCpfLifePayoutAge] = useState(65)
 //   const [liveSellAtRetirement, setLiveSellAtRetirement] = useState(true)
   const [liveResult, setLiveResult] = useState<SnapshotResult | null>(null)
   const [liveLoading, setLiveLoading] = useState(false)
@@ -181,6 +187,13 @@ export default function DashboardPage() {
         income: selected.income,
         expense: selected.expense,
         assetList: selected.assets,
+        pension: {
+          oa: selected.oa ?? 0,
+          sa: selected.sa ?? 0,
+          ma: selected.ma ?? 0,
+          cpfLife: { plan: selected.cpfLifePlan ?? "standard", payoutAge: selected.cpfLifePayoutAge ?? 65 },
+          age55Withdrawal: selected.age55Withdrawal ?? "frs_withdrawal",
+        },
       }),
     })
       .then((r) => r.json())
@@ -208,6 +221,12 @@ export default function DashboardPage() {
     setLiveCash(cash?.value ?? 0)
     setLiveInvestment(inv?.value ?? 0)
     setLiveReturn(Math.round((inv?.return ?? 0.07) * 100 * 10) / 10)
+    setLiveOa(latestSnap.oa ?? 0)
+    setLiveSa(latestSnap.sa ?? 0)
+    setLiveMa(latestSnap.ma ?? 0)
+    setLiveAge55Withdrawal(latestSnap.age55Withdrawal ?? "frs_withdrawal")
+    setLiveCpfLifePlan(latestSnap.cpfLifePlan ?? "standard")
+    setLiveCpfLifePayoutAge(latestSnap.cpfLifePayoutAge ?? 65)
     // setLiveSellAtRetirement(latestSnap.sell_at_retirement)
     setLiveResult(null)
     setSaved(false)
@@ -239,6 +258,13 @@ export default function DashboardPage() {
               { name: "cash", value: liveCash, return: 0 },
               { name: "investment", value: liveInvestment, return: liveReturn / 100 },
             ],
+            pension: {
+              oa: liveOa,
+              sa: liveSa,
+              ma: liveMa,
+              cpfLife: { plan: liveCpfLifePlan, payoutAge: liveCpfLifePayoutAge },
+              age55Withdrawal: liveAge55Withdrawal,
+            },
           }),
         })
         if (res.ok) setLiveResult((await res.json()) as SnapshotResult)
@@ -278,7 +304,13 @@ export default function DashboardPage() {
       liveExpense !== latestSnap.expense ||
       liveCash !== (latestCashAsset?.value ?? 0) ||
       liveInvestment !== (latestInvAsset?.value ?? 0) ||
-      Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001
+      Math.abs(liveReturn / 100 - (latestInvAsset?.return ?? 0.07)) > 0.0001 ||
+      liveOa !== (latestSnap.oa ?? 0) ||
+      liveSa !== (latestSnap.sa ?? 0) ||
+      liveMa !== (latestSnap.ma ?? 0) ||
+      liveAge55Withdrawal !== (latestSnap.age55Withdrawal ?? "frs_withdrawal") ||
+      liveCpfLifePlan !== (latestSnap.cpfLifePlan ?? "standard") ||
+      liveCpfLifePayoutAge !== (latestSnap.cpfLifePayoutAge ?? 65)
 
   const ageDelta =
     liveResult && selectedResult
@@ -297,6 +329,12 @@ export default function DashboardPage() {
             { name: "cash", value: liveCash, return: 0 },
             { name: "investment", value: liveInvestment, return: liveReturn / 100 },
           ],
+          oa: liveOa,
+          sa: liveSa,
+          ma: liveMa,
+          age55Withdrawal: liveAge55Withdrawal,
+          cpfLifePlan: liveCpfLifePlan,
+          cpfLifePayoutAge: liveCpfLifePayoutAge,
         },
         accessToken,
       )

@@ -2,14 +2,14 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Bar,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+    Bar,
+    CartesianGrid,
+    ComposedChart,
+    Line,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
 } from "recharts"
 
 export type ExpenseProjection = {
@@ -23,11 +23,11 @@ export type ExpenseProjection = {
 }
 
 const SERIES = [
-  { key: "income",     label: "Income",     color: "#7c3aed" },
-  { key: "cpf",        label: "CPF",        color: "#2563eb" },
-  { key: "cash",       label: "Cash",       color: "#059669" },
-  { key: "investment", label: "Investment", color: "#d97706" },
-  { key: "shortfall",  label: "Shortfall",  color: "#9ca3af" },
+  { key: "income",     label: "Income",     color: "var(--chart-1)" },
+  { key: "cpf",        label: "CPF",        color: "var(--chart-4)" },
+  { key: "cash",       label: "Cash",       color: "var(--chart-5)" },
+  { key: "investment", label: "Investment", color: "var(--chart-2)" },
+  { key: "shortfall",  label: "Shortfall",  color: "var(--chart-3)" },
 ] as const
 
 type ChartRow = { age: number } & Record<typeof SERIES[number]["key"], number> & { total: number }

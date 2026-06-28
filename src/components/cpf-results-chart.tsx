@@ -167,7 +167,7 @@ export function CpfResultsChart({ expenseCoverage, chartData: rawChartData, load
             </div>
             <div className="flex items-center gap-6 text-xs flex-wrap">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-primary" />
+                <div className="w-3 h-3" style={{ backgroundColor: "var(--chart-4)" }} />
                 <span className="text-muted-foreground">Withdrawal</span>
               </div>
               <div className="flex items-center gap-2">
@@ -196,7 +196,7 @@ export function CpfResultsChart({ expenseCoverage, chartData: rawChartData, load
                     width={55}
                   />
                   <Tooltip content={<CoverageTooltip />} cursor={{ fill: "var(--muted)", opacity: 0.3 }} />
-                  <Bar dataKey="withdrawal" name="Withdrawal" fill="var(--primary)" radius={0} />
+                  <Bar dataKey="withdrawal" name="Withdrawal" fill="var(--chart-4)" radius={0} />
                   <Line
                     dataKey="expense"
                     name="Expense"
