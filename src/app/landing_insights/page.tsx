@@ -286,7 +286,7 @@ export default function HomePage() {
 
   const tabConfig: { id: Tab; label: string }[] = [
     { id: "calculator", label: "FIRE Calculator" },
-    { id: "cpf", label: "CPF Withdrawals" },
+    { id: "cpf", label: "CPF Coverage" },
   ];
 
   return (

@@ -100,7 +100,8 @@ export function CpfForm({
     <Card className="lg:sticky lg:top-24 border-border bg-card">
       <CardContent className="p-0">
         <div className="border-b border-border px-6 py-4">
-          <h2 className="font-serif text-xl text-foreground">CPF Account Details</h2>
+          <h2 className="font-serif text-xl text-foreground">Your CPF Balances Today</h2>
+          <p className="text-xs text-muted-foreground mt-1">Enter what you have contributed to date — no future contributions are assumed.</p>
         </div>
 
         <div className="p-6 space-y-6">

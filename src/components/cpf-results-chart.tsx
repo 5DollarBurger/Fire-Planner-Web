@@ -108,10 +108,10 @@ export function CpfResultsChart({ expenseCoverage, chartData: rawChartData, load
       <Card className="border-border bg-card overflow-hidden">
         <div className="border-b border-border px-6 py-4 bg-primary flex items-center justify-between gap-4 flex-wrap">
           <p className="font-serif text-xl md:text-2xl text-primary-foreground tracking-tight">
-            CPF Expense Coverage
+            Coverage from CPF so far
           </p>
           <p className="text-xs uppercase tracking-[0.2em] text-primary-foreground/70">
-            Based on current account balances
+            No future contributions assumed
           </p>
         </div>
         <CardContent className="p-8">
@@ -129,7 +129,7 @@ export function CpfResultsChart({ expenseCoverage, chartData: rawChartData, load
                     <span className="text-4xl md:text-5xl">%</span>
                   </p>
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mt-4">
-                    of lifetime expenses covered by CPF
+                    of future expenses covered by your contributions so far
                   </p>
                 </>
               ) : null}
@@ -146,9 +146,9 @@ export function CpfResultsChart({ expenseCoverage, chartData: rawChartData, load
                 <p className="font-serif text-xl text-foreground">{coverageLabel ?? "—"}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {coveragePct !== null && coveragePct < 100
-                    ? `${100 - coveragePct}% gap from liquid assets`
+                    ? `${100 - coveragePct}% must come from other assets`
                     : coveragePct !== null && coveragePct >= 100
-                    ? "CPF fully funds expenses"
+                    ? "CPF alone covers all future expenses"
                     : ""}
                 </p>
               </div>
@@ -162,8 +162,8 @@ export function CpfResultsChart({ expenseCoverage, chartData: rawChartData, load
         <Card className="border-border bg-card">
           <div className="border-b border-border px-6 py-4 flex items-baseline justify-between">
             <div>
-              <h3 className="font-serif text-lg text-foreground">CPF Withdrawals vs Expenses</h3>
-              <p className="text-xs text-muted-foreground mt-1">Annual amounts, nominal values</p>
+              <h3 className="font-serif text-lg text-foreground">CPF Withdrawals vs Future Expenses</h3>
+              <p className="text-xs text-muted-foreground mt-1">Annual amounts · no future contributions · nominal values</p>
             </div>
             <div className="flex items-center gap-6 text-xs flex-wrap">
               <div className="flex items-center gap-2">
@@ -270,9 +270,11 @@ export function CpfResultsChart({ expenseCoverage, chartData: rawChartData, load
       {expenseCoverage !== null && (
         <div className="border-t border-b border-border py-6 text-center">
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Based on your current CPF balances and no further contributions, CPF Life and OA withdrawals
-            will cover <span className="text-foreground">{coveragePct}%</span> of your inflation-adjusted
-            lifetime expenses. The remaining gap will need to be funded from liquid assets.
+            Based on what you have contributed to date — with no further contributions —
+            your CPF will cover <span className="text-foreground">{coveragePct}%</span> of your
+            inflation-adjusted future expenses. The remaining{" "}
+            <span className="text-foreground">{100 - (coveragePct ?? 0)}%</span> will need to
+            come from your other assets.
           </p>
         </div>
       )}
