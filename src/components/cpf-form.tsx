@@ -115,6 +115,10 @@ export function CpfForm({
               type="number"
               value={age}
               onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+              onBlur={(e) => {
+                const v = parseInt(e.target.value)
+                setAge(isNaN(v) ? 18 : Math.min(Math.max(v, 18), 100))
+              }}
               min={18}
               max={100}
               className="font-serif text-lg border-0 border-b border-border rounded-none bg-transparent px-0 focus-visible:ring-0 focus-visible:border-foreground"
@@ -162,12 +166,14 @@ export function CpfForm({
             </div>
           </div>
 
-          {/* SA */}
+          {/* SA / RA */}
           <div className="space-y-2">
             <FieldTooltip
               htmlFor="cpf-sa"
-              label="Special Account (SA)"
-              tip="Current SA balance. Earns 4% p.a. Transferred to Retirement Account at age 55 to meet the Retirement Sum."
+              label={age >= 55 ? "Retirement Account (RA)" : "Special Account (SA)"}
+              tip={age >= 55
+                ? "Current RA balance. Earns 4% p.a. Funds your CPF Life premium and provides lifelong monthly payouts."
+                : "Current SA balance. Earns 4% p.a. Transferred to Retirement Account at age 55 to meet the Retirement Sum."}
             />
             <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
               <Input

@@ -102,6 +102,10 @@ export function CalculatorForm({
               type="number"
               value={age}
               onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+              onBlur={(e) => {
+                const v = parseInt(e.target.value)
+                setAge(isNaN(v) ? 18 : Math.min(Math.max(v, 18), 100))
+              }}
               min={18}
               max={100}
               className="font-serif text-lg border-0 border-b border-border rounded-none bg-transparent px-0 focus-visible:ring-0 focus-visible:border-foreground"
