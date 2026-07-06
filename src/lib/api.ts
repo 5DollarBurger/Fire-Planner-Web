@@ -122,6 +122,16 @@ export const projectSnapshot = (id: number, token: string) =>
     fineProjection: FineProjection
   }>(`/api/snapshots/${id}/project`, {}, token)
 
+export type ExpenseProjection = {
+  age: number[]
+  income: number[]
+  cpf: number[]
+  cash: number[]
+  investment: number[]
+  shortfall: number[]
+  total: number[]
+}
+
 export const compareSnapshot = (
   id: number,
   payload: { income: number; expense: number; assetList: object[]; pension?: object },
@@ -136,6 +146,7 @@ export const compareSnapshot = (
       yearsToRetire: number
       targetFIRE: number
       fineProjection: FineProjection
+      expenseProjection?: ExpenseProjection
     }
     live: {
       age: number
@@ -143,6 +154,7 @@ export const compareSnapshot = (
       yearsToRetire: number
       targetFIRE: number
       fineProjection: FineProjection
+      expenseProjection?: ExpenseProjection
     }
     scorecard: {
       retirementAgeDelta: number

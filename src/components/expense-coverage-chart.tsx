@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
+import { type ExpenseProjection } from "@/lib/api"
 import {
     Bar,
     CartesianGrid,
@@ -12,15 +13,7 @@ import {
     YAxis,
 } from "recharts"
 
-export type ExpenseProjection = {
-  age: number[]
-  income: number[]
-  cpf: number[]
-  cash: number[]
-  investment: number[]
-  shortfall: number[]
-  total: number[]
-}
+export type { ExpenseProjection }
 
 const SERIES = [
   { key: "income",     label: "Income",     color: "var(--chart-1)" },
