@@ -46,6 +46,21 @@ async function proxyRequest<T>(path: string, init: RequestInit, token: string): 
   return res.json()
 }
 
+export interface FineProjection {
+  yearsToRetire: number
+  monthsToRetire: number
+  daysToRetire: number
+  retirementDate: string
+  targetFIRE: number
+  liquidAssetDict: {
+    cash: number[]
+    investment: number[]
+    cpf?: number[]
+    total: number[]
+    age: number[]
+  }
+}
+
 export interface ApiProfile {
   date_of_birth: string | null
   gender: "male" | "female"
@@ -96,6 +111,46 @@ export const listSnapshots = (token: string) =>
 export const createSnapshot = (payload: object, token: string) =>
   proxyRequest<ApiSnapshot>("/api/snapshots", { method: "POST", body: JSON.stringify(payload) }, token)
 
+export const projectSnapshot = (id: number, token: string) =>
+  proxyRequest<{
+    snapshotId: number
+    snapshotDate: string
+    ageAtSnapshot: number
+    retirementAge: number
+    yearsToRetire: number
+    targetFIRE: number
+    fineProjection: FineProjection
+  }>(`/api/snapshots/${id}/project`, {}, token)
+
+export const compareSnapshot = (
+  id: number,
+  payload: { income: number; expense: number; assetList: object[]; pension?: object },
+  token: string,
+) =>
+  proxyRequest<{
+    snapshot: {
+      id: number
+      createdAt: string
+      ageAtSnapshot: number
+      retirementAge: number
+      yearsToRetire: number
+      targetFIRE: number
+      fineProjection: FineProjection
+    }
+    live: {
+      age: number
+      retirementAge: number
+      yearsToRetire: number
+      targetFIRE: number
+      fineProjection: FineProjection
+    }
+    scorecard: {
+      retirementAgeDelta: number
+      yearsToRetireDelta: number
+      targetFIREDelta: number
+    }
+  }>(`/api/snapshots/${id}/compare`, { method: "POST", body: JSON.stringify(payload) }, token)
+
 export const api = {
   googleAuth: (googleToken: string) =>
     fetch("/api/auth/google", {
@@ -103,7 +158,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: googleToken }),
     }).then(async (res) => {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) throw { status: res.status, detail: data }
       return data as { access: string; refresh: string }
     }),
@@ -114,7 +169,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh }),
     }).then(async (res) => {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) throw { status: res.status, detail: data }
       return data as { access: string }
     }),

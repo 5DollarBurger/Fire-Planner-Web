@@ -7,33 +7,25 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { useAuth } from "@/hooks/useAuth"
-import { ApiProfile, ApiSnapshot, computeAgeFromDOB, createSnapshot, getProfile, listSnapshots } from "@/lib/api"
+import { ApiProfile, ApiSnapshot, FineProjection, compareSnapshot, computeAgeFromDOB, createSnapshot, getProfile, listSnapshots } from "@/lib/api"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import defaultInputs from "@/data/personas/default/inputs.json"
 import defaultRetirement from "@/data/personas/default/retirement-age.json"
-
-type FineProjection = {
-  yearsToRetire: number
-  monthsToRetire: number
-  daysToRetire: number
-  targetFIRE: number
-  liquidAssetDict: {
-    cash: number[]
-    investment: number[]
-    cpf?: number[]
-    total: number[]
-    age: number[]
-  }
-}
 
 type SnapshotResult = {
   retirementAge: number
   yearsToRetire: number
   targetFIRE: number
   fineProjection: FineProjection
+}
+
+type Scorecard = {
+  retirementAgeDelta: number
+  yearsToRetireDelta: number
+  targetFIREDelta: number
 }
 
 function buildDefaultResult(): SnapshotResult {
@@ -47,6 +39,7 @@ function buildDefaultResult(): SnapshotResult {
       yearsToRetire: fp.yearsToRetire,
       monthsToRetire: fp.monthsToRetire,
       daysToRetire: fp.daysToRetire,
+      retirementDate: (fp as { retirementDate?: string }).retirementDate ?? "",
       targetFIRE: fp.targetFIRE,
       liquidAssetDict: {
         cash: lad.cash,
@@ -169,37 +162,20 @@ export default function DashboardPage() {
   const [liveLoading, setLiveLoading] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // ── Selected snapshot result (computed on demand) ──────────────────────
+  // ── Selected snapshot result + scorecard ───────────────────────────────
   const [selectedResult, setSelectedResult] = useState<SnapshotResult | null>(null)
+  const [scorecard, setScorecard] = useState<Scorecard | null>(null)
 
+  // Clear baseline immediately when the user switches snapshots so the old
+  // overlay doesn't persist during the debounce window.
+  const prevSelectedId = useRef<number | undefined>(undefined)
   useEffect(() => {
-    if (!selected || !profile?.date_of_birth) return
-    const { age, ageElapsed } = computeAgeFromDOB(profile.date_of_birth)
-    setSelectedResult(null)
-    fetch("/api/retirement-age", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        age,
-        ageElapsed,
-        gender: profile.gender ?? "female",
-        country: profile.country ?? "SGP",
-        income: selected.income,
-        expense: selected.expense,
-        assetList: selected.assets,
-        pension: {
-          oa: selected.oa ?? 0,
-          sa: selected.sa ?? 0,
-          ma: selected.ma ?? 0,
-          cpfLife: { plan: selected.cpfLifePlan ?? "standard", payoutAge: selected.cpfLifePayoutAge ?? 65 },
-          age55Withdrawal: selected.age55Withdrawal ?? "frs_withdrawal",
-        },
-      }),
-    })
-      .then((r) => r.json())
-      .then((r) => setSelectedResult(r as SnapshotResult))
-      .catch(console.error)
-  }, [selected?.id, profile?.date_of_birth, profile?.gender, profile?.country])
+    if (selected?.id !== prevSelectedId.current) {
+      prevSelectedId.current = selected?.id
+      setSelectedResult(null)
+      setScorecard(null)
+    }
+  }, [selected?.id])
 
   // Seed live inputs when snapshots load or selected snapshot changes
   useEffect(() => {
@@ -209,7 +185,6 @@ export default function DashboardPage() {
       setLiveCash(DEFAULT_CASH?.value ?? 30000)
       setLiveInvestment(DEFAULT_INV?.value ?? 50000)
       setLiveReturn(Math.round((DEFAULT_INV?.return ?? 0.07) * 100 * 10) / 10)
-    //   setLiveSellAtRetirement(defaultInputs.sellInvestmentAtRetirement)
       setLiveResult(buildDefaultResult())
       return
     }
@@ -227,54 +202,66 @@ export default function DashboardPage() {
     setLiveAge55Withdrawal(latestSnap.age55Withdrawal ?? "frs_withdrawal")
     setLiveCpfLifePlan(latestSnap.cpfLifePlan ?? "standard")
     setLiveCpfLifePayoutAge(latestSnap.cpfLifePayoutAge ?? 65)
-    // setLiveSellAtRetirement(latestSnap.sell_at_retirement)
     setLiveResult(null)
     setSaved(false)
   }, [latestSnap, snapshotsLoading])
 
-  // ── Debounced live fetch ───────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // ── Debounced compare/live fetch ───────────────────────────────────────
   useEffect(() => {
-    const ageInfo = profile?.date_of_birth
-      ? computeAgeFromDOB(profile.date_of_birth)
-      : null
-    if (!ageInfo) return
     setSaved(false)
     setLiveLoading(true)
+
+    const liveAssets = [
+      { name: "cash", value: liveCash, return: 0 },
+      { name: "investment", value: liveInvestment, return: liveReturn / 100 },
+    ]
+    const livePension = {
+      oa: liveOa, sa: liveSa, ma: liveMa,
+      cpfLife: { plan: liveCpfLifePlan, payoutAge: liveCpfLifePayoutAge },
+      age55Withdrawal: liveAge55Withdrawal,
+    }
+
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch("/api/retirement-age", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            age: ageInfo.age,
-            ageElapsed: ageInfo.ageElapsed,
-            gender: profile?.gender ?? "female",
-            country: profile?.country ?? "SGP",
-            income: liveIncome,
-            expense: liveExpense,
-            // sellInvestmentAtRetirement: liveSellAtRetirement,
-            assetList: [
-              { name: "cash", value: liveCash, return: 0 },
-              { name: "investment", value: liveInvestment, return: liveReturn / 100 },
-            ],
-            pension: {
-              oa: liveOa,
-              sa: liveSa,
-              ma: liveMa,
-              cpfLife: { plan: liveCpfLifePlan, payoutAge: liveCpfLifePayoutAge },
-              age55Withdrawal: liveAge55Withdrawal,
-            },
-          }),
-        })
-        if (res.ok) setLiveResult((await res.json()) as SnapshotResult)
+        if (selected && accessToken) {
+          // Single call returns both snapshot projection (cropped to live age)
+          // and live projection, plus the server-computed scorecard.
+          const result = await compareSnapshot(
+            selected.id,
+            { income: liveIncome, expense: liveExpense, assetList: liveAssets, pension: livePension },
+            accessToken,
+          )
+          setLiveResult(result.live)
+          setSelectedResult(result.snapshot)
+          setScorecard(result.scorecard)
+        } else {
+          // No snapshot to compare against — run live calculation only.
+          const ageInfo = profile?.date_of_birth ? computeAgeFromDOB(profile.date_of_birth) : null
+          if (!ageInfo) return
+          const res = await fetch("/api/retirement-age", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              age: ageInfo.age,
+              ageElapsed: ageInfo.ageElapsed,
+              gender: profile?.gender ?? "female",
+              country: profile?.country ?? "SGP",
+              income: liveIncome,
+              expense: liveExpense,
+              assetList: liveAssets,
+              pension: livePension,
+            }),
+          })
+          if (res.ok) setLiveResult((await res.json()) as SnapshotResult)
+          setSelectedResult(null)
+          setScorecard(null)
+        }
       } finally {
         setLiveLoading(false)
       }
     }, 1000)
     return () => clearTimeout(timer)
-//   }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveSellAtRetirement, latestSnap, profile])
-  }, [liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, profile])
+  }, [selected?.id, accessToken, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveOa, liveSa, liveMa, liveAge55Withdrawal, liveCpfLifePlan, liveCpfLifePayoutAge, profile])
 
   // ── Derived chart data ─────────────────────────────────────────────────
   const liveChartData: ChartRow[] = liveResult
@@ -312,10 +299,8 @@ export default function DashboardPage() {
       liveCpfLifePlan !== (latestSnap.cpfLifePlan ?? "standard") ||
       liveCpfLifePayoutAge !== (latestSnap.cpfLifePayoutAge ?? 65)
 
-  const ageDelta =
-    liveResult && selectedResult
-      ? selectedResult.retirementAge - liveResult.retirementAge
-      : null
+  const ageDelta = scorecard?.retirementAgeDelta ?? null
+  const yearsToRetireDelta = scorecard?.yearsToRetireDelta ?? null
 
   // ── Save Analysis ──────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
