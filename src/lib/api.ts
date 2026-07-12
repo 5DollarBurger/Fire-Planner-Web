@@ -46,25 +46,39 @@ async function proxyRequest<T>(path: string, init: RequestInit, token: string): 
   return res.json()
 }
 
+export interface FineProjection {
+  yearsToRetire: number
+  monthsToRetire: number
+  daysToRetire: number
+  retirementDate: string
+  targetFIRE: number
+  liquidAssetDict: {
+    cash: number[]
+    investment: number[]
+    cpf?: number[]
+    total: number[]
+    age: number[]
+  }
+}
+
 export interface ApiProfile {
   date_of_birth: string | null
+  gender: "male" | "female"
+  country: string
 }
 
 export interface ApiSnapshot {
   id: number
   created_at: string
-  age: number
-  age_elapsed: number
   income: number
   expense: number
   assets: { name: string; value: number; return: number }[]
-  sell_at_retirement: boolean
-  retirement_age: number
-  years_to_retire: number
-  months_to_retire: number
-  days_to_retire: number
-  target_fire: number
-  projection: { cash: number[]; investment: number[]; age: number[] }
+  oa: number
+  sa: number
+  ma: number
+  age55Withdrawal: "brs_withdrawal" | "frs_withdrawal" | "ers_pursuit"
+  cpfLifePlan: "basic" | "standard" | "escalating"
+  cpfLifePayoutAge: number
 }
 
 export function computeAgeFromDOB(dob: string): { age: number; ageElapsed: number } {
@@ -97,6 +111,58 @@ export const listSnapshots = (token: string) =>
 export const createSnapshot = (payload: object, token: string) =>
   proxyRequest<ApiSnapshot>("/api/snapshots", { method: "POST", body: JSON.stringify(payload) }, token)
 
+export const projectSnapshot = (id: number, token: string) =>
+  proxyRequest<{
+    snapshotId: number
+    snapshotDate: string
+    ageAtSnapshot: number
+    retirementAge: number
+    yearsToRetire: number
+    targetFIRE: number
+    fineProjection: FineProjection
+  }>(`/api/snapshots/${id}/project`, {}, token)
+
+export type ExpenseProjection = {
+  age: number[]
+  income: number[]
+  cpf: number[]
+  cash: number[]
+  investment: number[]
+  shortfall: number[]
+  total: number[]
+}
+
+export const compareSnapshot = (
+  id: number,
+  payload: { income: number; expense: number; assetList: object[]; pension?: object },
+  token: string,
+) =>
+  proxyRequest<{
+    snapshot: {
+      id: number
+      createdAt: string
+      ageAtSnapshot: number
+      retirementAge: number
+      yearsToRetire: number
+      targetFIRE: number
+      fineProjection: FineProjection
+      expenseProjection?: ExpenseProjection
+    }
+    live: {
+      age: number
+      retirementAge: number
+      yearsToRetire: number
+      targetFIRE: number
+      fineProjection: FineProjection
+      expenseProjection?: ExpenseProjection
+    }
+    scorecard: {
+      retirementAgeDelta: number
+      yearsToRetireDelta: number
+      targetFIREDelta: number
+    }
+  }>(`/api/snapshots/${id}/compare`, { method: "POST", body: JSON.stringify(payload) }, token)
+
 export const api = {
   googleAuth: (googleToken: string) =>
     fetch("/api/auth/google", {
@@ -104,7 +170,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: googleToken }),
     }).then(async (res) => {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) throw { status: res.status, detail: data }
       return data as { access: string; refresh: string }
     }),
@@ -115,7 +181,7 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh }),
     }).then(async (res) => {
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) throw { status: res.status, detail: data }
       return data as { access: string }
     }),

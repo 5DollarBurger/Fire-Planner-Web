@@ -102,6 +102,10 @@ export function CalculatorForm({
               type="number"
               value={age}
               onChange={(e) => setAge(parseInt(e.target.value) || 0)}
+              onBlur={(e) => {
+                const v = parseInt(e.target.value)
+                setAge(isNaN(v) ? 18 : Math.min(Math.max(v, 18), 100))
+              }}
               min={18}
               max={100}
               className="font-serif text-lg border-0 border-b border-border rounded-none bg-transparent px-0 focus-visible:ring-0 focus-visible:border-foreground"
@@ -113,7 +117,7 @@ export function CalculatorForm({
             <FieldTooltip
               htmlFor="income"
               label="Annual Income"
-              tip="Accessible liquid income net of taxes, mortgage, and pension contributions — money available for savings, investing, and day-to-day expenses."
+              tip="Your annual income before tax. Used to calculate tax brackets, CPF contributions, and net savings."
             />
             <div className="flex items-center gap-2 border-b border-border focus-within:border-foreground">
               <Input

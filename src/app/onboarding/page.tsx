@@ -2,17 +2,19 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/hooks/useAuth"
-import { computeAgeFromDOB, createSnapshot, updateProfile } from "@/lib/api"
-
-const PENDING_SNAPSHOT_KEY = "fire_pending_snapshot"
+import { createSnapshot, updateProfile } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+
+const PENDING_SNAPSHOT_KEY = "fire_pending_snapshot"
 
 export default function OnboardingPage() {
   const router = useRouter()
   const { isAuthenticated, accessToken } = useAuth()
   const [hydrated, setHydrated] = useState(false)
   const [dob, setDob] = useState("")
+  const [gender, setGender] = useState<"male" | "female">("female")
+  const [country, setCountry] = useState("SGP")
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -32,12 +34,11 @@ export default function OnboardingPage() {
     setError(null)
     setSaving(true)
     try {
-      await updateProfile({ date_of_birth: dob }, accessToken)
+      await updateProfile({ date_of_birth: dob, gender, country }, accessToken)
       const pending = sessionStorage.getItem(PENDING_SNAPSHOT_KEY)
       if (pending) {
         try {
-          const { age, ageElapsed } = computeAgeFromDOB(dob)
-          await createSnapshot({ ...JSON.parse(pending), age, age_elapsed: ageElapsed }, accessToken)
+          await createSnapshot(JSON.parse(pending), accessToken)
         } catch { /* don't block navigation if snapshot save fails */ }
         sessionStorage.removeItem(PENDING_SNAPSHOT_KEY)
       }
@@ -67,11 +68,12 @@ export default function OnboardingPage() {
         <Card className="border-border bg-card">
           <CardContent className="p-8">
             <h2 className="font-serif text-xl text-foreground mb-2">
-              When were you born?
+              Tell us about yourself
             </h2>
             <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
-              Your date of birth lets us calculate your precise age and project
-              your FIRE date accurately.
+              Your date of birth, country, and gender let us personalise your
+              projection — accounting for local inflation, life expectancy, and
+              pension eligibility.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -87,6 +89,53 @@ export default function OnboardingPage() {
                   max={new Date().toISOString().split("T")[0]}
                   className="w-full font-serif text-lg border-0 border-b border-border bg-transparent pb-2 focus:outline-none focus:border-foreground transition-colors"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Gender
+                </label>
+                <div className="flex gap-6 pb-2 border-b border-border">
+                  {(["female", "male"] as const).map((g) => (
+                    <label key={g} className="flex items-center gap-2 cursor-pointer text-sm font-serif">
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={g}
+                        checked={gender === g}
+                        onChange={() => setGender(g)}
+                        className="accent-foreground"
+                      />
+                      {g.charAt(0).toUpperCase() + g.slice(1)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Country of Residence
+                </label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full font-serif text-lg border-0 border-b border-border bg-transparent pb-2 focus:outline-none focus:border-foreground
+              transition-colors"
+                >
+                  <option value="SGP">Singapore</option>
+                  {/* <option value="USA">United States</option> */}
+                  {/* <option value="GBR">United Kingdom</option> */}
+                  <option value="AUS">Australia</option>
+                  {/* <option value="CAN">Canada</option>
+                  <option value="MYS">Malaysia</option>
+                  <option value="HKG">Hong Kong</option>
+                  <option value="NZL">New Zealand</option> */}
+                  {/* {countries.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name}
+                    </option>
+                  ))} */}
+                </select>
               </div>
 
               {error && (
