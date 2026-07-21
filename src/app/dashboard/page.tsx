@@ -125,7 +125,7 @@ const planLabels: Record<string, string> = {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { isAuthenticated, accessToken, logout } = useAuth()
+  const { isAuthenticated, accessToken, logout, authFetch } = useAuth()
 
   // ── Auth guard ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -145,10 +145,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!accessToken) return
     Promise.all([
-      getProfile(accessToken).then(setProfile).catch(console.error),
-      listSnapshots(accessToken).then(setSnapshots).catch(console.error),
+      authFetch((token) => getProfile(token)).then(setProfile).catch(console.error),
+      authFetch((token) => listSnapshots(token)).then(setSnapshots).catch(console.error),
     ]).finally(() => setSnapshotsLoading(false))
-  }, [accessToken])
+  }, [accessToken, authFetch])
 
   // ── Snapshot selection ─────────────────────────────────────────────────
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -253,10 +253,12 @@ export default function DashboardPage() {
     const timer = setTimeout(async () => {
       try {
         if (selected && accessToken) {
-          const result = await compareSnapshot(
-            selected.id,
-            { income: liveIncome, expense: liveExpense, assetList: liveAssets, pension: livePension },
-            accessToken,
+          const result = await authFetch((token) =>
+            compareSnapshot(
+              selected.id,
+              { income: liveIncome, expense: liveExpense, assetList: liveAssets, pension: livePension },
+              token,
+            )
           )
           setLiveResult(result.live as SnapshotResult)
           setSelectedResult(result.snapshot as SnapshotResult)
@@ -289,7 +291,7 @@ export default function DashboardPage() {
       }
     }, 1000)
     return () => clearTimeout(timer)
-  }, [selected?.id, accessToken, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveOa, liveSa, liveMa, liveAge55Withdrawal, liveCpfLifePlan, liveCpfLifePayoutAge, profile])
+  }, [selected?.id, accessToken, authFetch, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveOa, liveSa, liveMa, liveAge55Withdrawal, liveCpfLifePlan, liveCpfLifePayoutAge, profile])
 
   // ── Debounced CPF coverage fetch ───────────────────────────────────────
   useEffect(() => {
@@ -380,22 +382,24 @@ export default function DashboardPage() {
   const handleSave = useCallback(async () => {
     if (!isModified || !accessToken || !liveResult) return
     try {
-      const snap = await createSnapshot(
-        {
-          income: liveIncome,
-          expense: liveExpense,
-          assets: [
-            { name: "cash", value: liveCash, return: 0 },
-            { name: "investment", value: liveInvestment, return: liveReturn / 100 },
-          ],
-          oa: liveOa,
-          sa: liveSa,
-          ma: liveMa,
-          age55Withdrawal: liveAge55Withdrawal,
-          cpfLifePlan: liveCpfLifePlan,
-          cpfLifePayoutAge: liveCpfLifePayoutAge,
-        },
-        accessToken,
+      const snap = await authFetch((token) =>
+        createSnapshot(
+          {
+            income: liveIncome,
+            expense: liveExpense,
+            assets: [
+              { name: "cash", value: liveCash, return: 0 },
+              { name: "investment", value: liveInvestment, return: liveReturn / 100 },
+            ],
+            oa: liveOa,
+            sa: liveSa,
+            ma: liveMa,
+            age55Withdrawal: liveAge55Withdrawal,
+            cpfLifePlan: liveCpfLifePlan,
+            cpfLifePayoutAge: liveCpfLifePayoutAge,
+          },
+          token,
+        )
       )
       // Tell the seed effect not to blank liveResult — the inputs haven't
       // changed, so the current projection is still valid.
@@ -414,7 +418,7 @@ export default function DashboardPage() {
     } catch (err) {
       console.error("Save failed:", err)
     }
-  }, [isModified, accessToken, liveResult, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveOa, liveSa, liveMa, liveAge55Withdrawal, liveCpfLifePlan, liveCpfLifePayoutAge])
+  }, [isModified, accessToken, authFetch, liveResult, liveIncome, liveExpense, liveCash, liveInvestment, liveReturn, liveOa, liveSa, liveMa, liveAge55Withdrawal, liveCpfLifePlan, liveCpfLifePayoutAge])
 
   const handleSignOut = () => {
     logout()
