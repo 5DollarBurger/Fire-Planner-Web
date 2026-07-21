@@ -29,6 +29,20 @@ async function request<T>(
   return response.json()
 }
 
+export interface ApiError {
+  status: number
+  detail: unknown
+}
+
+export function isApiError(err: unknown): err is ApiError {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "status" in err &&
+    typeof (err as { status: unknown }).status === "number"
+  )
+}
+
 // Proxy calls go through Next.js route handlers (keeps API_URL and API_KEY server-side)
 async function proxyRequest<T>(path: string, init: RequestInit, token: string): Promise<T> {
   const res = await fetch(path, {

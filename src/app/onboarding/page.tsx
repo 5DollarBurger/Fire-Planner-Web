@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { useAuth } from "@/hooks/useAuth"
-import { createSnapshot, updateProfile } from "@/lib/api"
+import { createSnapshot, isApiError, updateProfile } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
@@ -10,7 +10,7 @@ const PENDING_SNAPSHOT_KEY = "fire_pending_snapshot"
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { isAuthenticated, accessToken } = useAuth()
+  const { isAuthenticated, accessToken, authFetch } = useAuth()
   const [hydrated, setHydrated] = useState(false)
   const [dob, setDob] = useState("")
   const [gender, setGender] = useState<"male" | "female">("female")
@@ -34,17 +34,22 @@ export default function OnboardingPage() {
     setError(null)
     setSaving(true)
     try {
-      await updateProfile({ date_of_birth: dob, gender, country }, accessToken)
+      await authFetch((token) => updateProfile({ date_of_birth: dob, gender, country }, token))
       const pending = sessionStorage.getItem(PENDING_SNAPSHOT_KEY)
       if (pending) {
         try {
-          await createSnapshot(JSON.parse(pending), accessToken)
+          await authFetch((token) => createSnapshot(JSON.parse(pending), token))
         } catch { /* don't block navigation if snapshot save fails */ }
         sessionStorage.removeItem(PENDING_SNAPSHOT_KEY)
       }
       router.replace("/dashboard")
-    } catch {
-      setError("Failed to save. Please try again.")
+    } catch (err) {
+      // A 401 means authFetch already tried to refresh, failed, and has
+      // already logged out + toasted + redirected — don't flash a second,
+      // redundant inline error right before the user is navigated away.
+      if (!isApiError(err) || err.status !== 401) {
+        setError("Failed to save. Please try again.")
+      }
     } finally {
       setSaving(false)
     }

@@ -1,9 +1,12 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
-import { api } from "@/lib/api"
+import { useState, useCallback, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { api, isApiError } from "@/lib/api"
 
 const STORAGE_KEY = "fire_auth"
+const LOGIN_PATH = "/landing_insights"
 
 interface AuthState {
   accessToken: string | null
@@ -32,6 +35,7 @@ function clearStorage() {
 }
 
 export function useAuth() {
+  const router = useRouter()
   const [auth, setAuth] = useState<AuthState>({ accessToken: null, refreshToken: null })
   const [hydrated, setHydrated] = useState(false)
 
@@ -65,6 +69,56 @@ export function useAuth() {
     return tokens.access
   }, [auth.refreshToken])
 
+  // Dedupe: if two authenticated calls 401 around the same time (e.g. the
+  // dashboard's Promise.all of getProfile + listSnapshots), only fire one
+  // actual refresh request — the second caller awaits the same promise.
+  const refreshInFlight = useRef<Promise<string> | null>(null)
+  const refreshOnce = useCallback(() => {
+    if (!refreshInFlight.current) {
+      refreshInFlight.current = refresh().finally(() => {
+        refreshInFlight.current = null
+      })
+    }
+    return refreshInFlight.current
+  }, [refresh])
+
+  // Dedupe: guards against concurrent calls (e.g. getProfile and listSnapshots
+  // both failing at once) each firing their own logout/toast/redirect.
+  const sessionExpiredFired = useRef(false)
+  const sessionExpired = useCallback(() => {
+    if (sessionExpiredFired.current) return
+    sessionExpiredFired.current = true
+    logout()
+    toast.error("Your session has expired, please sign in again")
+    router.replace(LOGIN_PATH)
+  }, [logout, router])
+
+  // Wrap every authenticated api.ts call with this instead of passing
+  // accessToken directly. On a 401, retries once after a token refresh; if
+  // that also fails, logs out, toasts, and redirects to login.
+  const authFetch = useCallback(
+    async <T,>(fn: (token: string) => Promise<T>): Promise<T> => {
+      const token = auth.accessToken
+      if (!token) {
+        sessionExpired()
+        throw { status: 401, detail: { message: "Not authenticated" } }
+      }
+      try {
+        return await fn(token)
+      } catch (err) {
+        if (!isApiError(err) || err.status !== 401) throw err
+        try {
+          const newToken = await refreshOnce()
+          return await fn(newToken)
+        } catch {
+          sessionExpired()
+          throw err
+        }
+      }
+    },
+    [auth.accessToken, refreshOnce, sessionExpired]
+  )
+
   const isReturningUser = hydrated && !!readStorage().refreshToken
 
   return {
@@ -74,5 +128,6 @@ export function useAuth() {
     loginWithGoogle,
     logout,
     refresh,
+    authFetch,
   }
 }
